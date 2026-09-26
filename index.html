@@ -63,8 +63,8 @@
           <button class="text-btn" id="btn-custom" title="Add your own OBJ as a prop" hidden>+ Custom</button>
         </div>
         <div class="head-actions" id="sets-actions" hidden>
-          <button class="text-btn" id="btn-sets-export" title="Download all your sets as a file (backup or share)">Export</button>
-          <button class="text-btn" id="btn-sets-import" title="Add sets from an exported file">Import</button>
+          <button class="text-btn" id="btn-sets-export" title="Download all your sets as a file (backup, or to move them to another browser)">Export</button>
+          <button class="text-btn" id="btn-sets-import" title="Add a set from a share code, or sets from an exported file">Import</button>
         </div>
       </div>
       <input type="search" id="prop-search" placeholder="Search props…" autocomplete="off">
@@ -208,6 +208,27 @@
   </form>
 </dialog>
 
+<dialog id="dlg-set-code" class="dlg">
+  <form method="dialog" id="code-form">
+    <h3>Import sets</h3>
+    <p class="muted">Paste a set's share code. Pressing Ctrl+V anywhere on the site opens this too.</p>
+    <label class="field"><span>Share code</span>
+      <textarea id="code-input" class="code-input" rows="3" spellcheck="false" autocomplete="off" placeholder="PSD-SET1:…"></textarea>
+    </label>
+    <div id="code-preview" hidden>
+      <div class="set-preview"><img id="code-thumb" alt=""></div>
+      <p class="code-sum"><b id="code-name"></b><br><span class="muted small" id="code-count"></span></p>
+    </div>
+    <p class="muted small" id="code-note"></p>
+    <p class="form-error" id="code-error"></p>
+    <div class="dlg-actions">
+      <button class="text-btn code-file" type="button" id="code-file" title="Add the sets in a file made with Export">From a file…</button>
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn primary" type="submit" id="code-add" disabled>Add set</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlg-manage" class="dlg">
   <form method="dialog">
     <h3>Prop list</h3>
@@ -288,6 +309,7 @@
           <dt>Click + drag</dt><dd>Place a line (stack upward when Stacking is on)</dd>
           <dt>[ · ]</dt><dd>Rotate the prop before placing it</dd>
           <dt>Sets tab</dt><dd>Click a saved set to stamp copies of the group, exactly as it was saved; [ ] turn it, M mirror</dd>
+          <dt>Share a set</dt><dd>The share button on a set copies its code. Whoever gets it presses Ctrl+V on the site (or Sets → Import) to add the set</dd>
           <dt>Shift while dragging</dt><dd>Lock line to 45°</dd>
           <dt>Wheel while dragging · Alt + wheel</dt><dd>Line spacing</dd>
           <dt>Esc</dt><dd>Stop placing</dd>

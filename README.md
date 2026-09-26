@@ -184,8 +184,16 @@ anywhere.
   (rx, ry, rz) to (rx, -ry, -rz).
 - Sets saved before this change are converted when the page loads.
 - **Library**: rename (✎) and delete (✕, with Undo) on each tile. Sets live
-  in this browser; *Export* / *Import* move them between browsers or share
-  them as a `prop-sets.json` file.
+  in this browser; *Export* saves them all as a `prop-sets.json` file (backup,
+  or to move them to another browser), and *Import* → *From a file…* adds a
+  file's sets.
+- **Share**: the share button on a tile copies the set's share code, a line of
+  text starting `PSD-SET1:` to paste in Discord or anywhere. Whoever gets it
+  presses Ctrl+V on the site (outside a text box), or *Import*, sees the set
+  with its picture and adds it. The code holds only the set's name and props
+  (3 decimals, like a profile), nothing about who made it. A 20-prop set is
+  about 650 characters; past about 75 props it no longer fits in one Discord
+  message (Discord sends it as a file, which still works). Code: `js/sets.js`.
 
 ## Matches
 

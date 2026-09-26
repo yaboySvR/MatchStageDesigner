@@ -173,6 +173,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 .sets-empty kbd { font: 600 11px var(--font); padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,.1); color: var(--text); }
 .set-preview { display: grid; place-items: center; margin-bottom: 12px; }
 .set-preview img { width: 176px; height: 176px; object-fit: contain; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); }
+textarea.code-input { height: 76px; white-space: pre-wrap; word-break: break-all; }
+.code-sum { text-align: center; }
+#code-note:empty, #code-error:empty { display: none; }
+.dlg-actions .code-file { margin-right: auto; }
 .small { font-size: 12px; }
 .toast { display: flex; align-items: center; gap: 12px; }
 .toast-action { border: 0; background: none; color: var(--accent); font-weight: 700; padding: 2px 4px; border-radius: 6px; }

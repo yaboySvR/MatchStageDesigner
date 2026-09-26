@@ -1,10 +1,16 @@
-// Sidebar "Sets" tab, set tiles, and the Save-as-set dialog.
+// Sidebar "Sets" tab, set tiles, the Save-as-set dialog, and share codes (a
+// tile's share button copies one; pasting one anywhere, or Import, adds it).
 
 import { S, on } from './state.js';
 import * as store from './store.js';
 import * as V from './viewport.js';
 import * as tools from './tools.js';
-import { sets, loadSets, captureSet, addSet, renameSet, removeSet, getSet, exportSets, importSets } from './sets.js';
+import {
+  sets, loadSets, captureSet, addSet, renameSet, removeSet, getSet, exportSets, importSets,
+  CODE_TAG, setToCode, setFromCode, sameSet,
+} from './sets.js';
+import { getProp } from './catalog.js';
+import { getGeometry } from './geometry.js';
 import { settleNow } from './physics.js';
 import { download } from './profile.js';
 import { toast } from './toast.js';
@@ -12,8 +18,13 @@ import { toast } from './toast.js';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+const SHARE_ICON = '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10.5V2.5M5 5.5l3-3 3 3"/><path d="M3 9.5v4h10v-4"/></svg>';
+const DISCORD_MAX = 2000; // characters in one Discord message
+
 let tab = 'props';
 let pending = null; // set being saved
+let shared = null;  // set read from the code box, ready to add
+let reading = 0;    // bumps on each new read of the code box
 
 export function initSetsUI() {
   loadSets();
@@ -34,7 +45,7 @@ export function initSetsUI() {
     if (!sets.length) return toast('No sets to export yet');
     download('prop-sets.json', exportSets());
   });
-  $('btn-sets-import').addEventListener('click', () => $('file-sets').click());
+  $('btn-sets-import').addEventListener('click', () => openCodeDialog(''));
   $('file-sets').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
@@ -49,6 +60,8 @@ export function initSetsUI() {
   });
   $('set-form').addEventListener('submit', onSave);
   $('dlg-set').addEventListener('close', () => { pending = null; });
+  bindCodeDialog();
+  window.addEventListener('paste', onPaste);
 
   on('save-set', openSaveSetDialog);
   on('mode', renderSets);
@@ -79,7 +92,8 @@ export function renderSets() {
       <div class="sets-empty">
         <b>No sets yet</b>
         <p>Select a group of props in the arena, then press <kbd>Ctrl</kbd>+<kbd>G</kbd> or <em>Save as set</em> in the panel.
-        Click a set here to stamp copies anywhere; <kbd>[</kbd> <kbd>]</kbd> turn it, <kbd>M</kbd> mirrors it.</p>
+        Click a set here to stamp copies anywhere; <kbd>[</kbd> <kbd>]</kbd> turn it, <kbd>M</kbd> mirrors it.
+        Got a share code? Press <kbd>Ctrl</kbd>+<kbd>V</kbd> to add it.</p>
       </div>`;
     return;
   }
@@ -92,6 +106,7 @@ export function renderSets() {
       <div class="name">${esc(s.name)}</div>
       <div class="count">${s.items.length} prop${s.items.length === 1 ? '' : 's'}</div>
       <div class="tile-actions">
+        <button type="button" data-share title="Copy a share code" aria-label="Copy a share code for ${esc(s.name)}">${SHARE_ICON}</button>
         <button type="button" data-rename title="Rename" aria-label="Rename ${esc(s.name)}">✎</button>
         <button type="button" data-delete title="Delete" aria-label="Delete ${esc(s.name)}">✕</button>
       </div>
@@ -110,6 +125,7 @@ function onGridClick(e) {
     toast(`Deleted set “${set.name}”`, { action: { label: 'Undo', onClick: () => { undo(); renderSets(); } } });
     return;
   }
+  if (e.target.closest('[data-share]')) return shareSet(set);
   if (e.target.closest('[data-rename]')) return startRename(tile, set);
   if (S.mode === 'add' && S.addSet?.id === set.id) tools.exitAdd();
   else tools.enterSetPlacement(set);
@@ -158,6 +174,7 @@ export function openSaveSetDialog() {
 }
 
 function onSave(e) {
+  if (e.submitter?.value === 'cancel') return; // Cancel only closes the dialog
   e.preventDefault();
   if (!pending) return;
   const set = pending;
@@ -169,4 +186,113 @@ function onSave(e) {
   $('dlg-set').close();
   showTab('sets');
   toast(`Saved set “${set.name}”. Click it in the Sets tab to place copies.`, { ms: 5000 });
+}
+
+// ---------------------------------------------------------------- share codes
+
+async function shareSet(set) {
+  let code;
+  try {
+    code = await setToCode(set);
+  } catch (err) {
+    toast(`Couldn’t make a share code: ${err.message}`, { error: true });
+    return;
+  }
+  const long = code.length > DISCORD_MAX
+    ? ` It’s ${code.length} characters, more than one Discord message holds: Discord sends it as a file, and the code in it still works.`
+    : '';
+  try {
+    await navigator.clipboard.writeText(code);
+    toast(`Copied the share code for “${set.name}”. Whoever gets it presses Ctrl+V on the site to add the set.${long}`, { ms: long ? 9000 : 6000 });
+  } catch {
+    window.prompt('Copy this share code:', code); // no clipboard access
+  }
+}
+
+// Ctrl+V anywhere outside a text box: a share code opens the import dialog.
+function onPaste(e) {
+  const t = e.target;
+  if (t?.closest?.('input, textarea') || t?.isContentEditable || document.querySelector('dialog[open]')) return;
+  const text = e.clipboardData?.getData('text/plain') || '';
+  if (!text.includes(CODE_TAG)) return;
+  e.preventDefault();
+  openCodeDialog(text);
+}
+
+function openCodeDialog(text) {
+  $('code-input').value = text.trim();
+  readCode();
+  $('dlg-set-code').showModal();
+  if (!text) $('code-input').focus();
+}
+
+function bindCodeDialog() {
+  let timer;
+  $('code-input').addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(readCode, 150);
+  });
+  $('code-file').addEventListener('click', () => {
+    $('dlg-set-code').close();
+    $('file-sets').click();
+  });
+  $('code-form').addEventListener('submit', (e) => {
+    if (e.submitter?.value === 'cancel') return; // Cancel only closes the dialog
+    e.preventDefault();
+    const set = shared;
+    if (!set) return;
+    if (!addSet(set)) {
+      toast('Could not add it: browser storage is full. Export and delete some sets.', { error: true });
+      return;
+    }
+    $('dlg-set-code').close();
+    showTab('sets');
+    toast(`Added the set “${set.name}”. Click it in the Sets tab to place copies.`, { ms: 5000 });
+  });
+  $('dlg-set-code').addEventListener('close', () => {
+    shared = null;
+    reading++;
+  });
+}
+
+// Read the code box and show the set in it, with its picture.
+async function readCode() {
+  const token = ++reading;
+  const text = $('code-input').value.trim();
+  shared = null;
+  $('code-add').disabled = true;
+  $('code-preview').hidden = true;
+  $('code-note').textContent = '';
+  $('code-error').textContent = '';
+  if (!text) return;
+  let set;
+  try {
+    set = await setFromCode(text);
+  } catch (err) {
+    if (token === reading) $('code-error').textContent = err.message;
+    return;
+  }
+  const known = set.items.filter((it) => getProp(it.key)?.states[it.state] !== undefined);
+  if (!known.length) {
+    if (token === reading) $('code-error').textContent = 'None of the props in this set are on this site';
+    return;
+  }
+  const kinds = new Map(known.map((it) => [`${it.key}/${it.state}`, it]));
+  await Promise.all([...kinds.values()].map((it) => getGeometry(it.key, it.state).catch(() => null)));
+  if (token !== reading) return;
+  set.thumb = V.renderThumbnail(known.map((it) => ({ ...it, x: it.dx, y: it.dy, z: it.dz })));
+  const n = set.items.length;
+  const missing = n - known.length;
+  $('code-thumb').src = set.thumb || '';
+  $('code-thumb').hidden = !set.thumb;
+  $('code-name').textContent = set.name;
+  $('code-count').textContent = `${n} prop${n === 1 ? '' : 's'}${missing ? ` (${missing} not on this site, left out when placing)` : ''}`;
+  $('code-preview').hidden = false;
+  const same = sameSet(set);
+  if (same) {
+    $('code-note').textContent = `You already have this set: “${same.name}”.`;
+    return;
+  }
+  shared = set;
+  $('code-add').disabled = false;
 }

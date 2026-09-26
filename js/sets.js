@@ -157,3 +157,78 @@ export function importSets(text) {
   if (added && !persist()) throw new Error('Browser storage is full');
   return { added, skipped };
 }
+
+// ---------------------------------------------------------------- share codes
+
+// A set as one line of text to paste somewhere else: only its name and props
+// (no id, dates or picture), packed with deflate into URL-safe base64 after a
+// tag. Numbers keep 3 decimals, like a profile.
+export const CODE_TAG = 'PSD-SET1:';
+const CODE_RE = /PSD-SET1:([A-Za-z0-9_-]+)/;
+const MAX_ITEMS = 1000;
+const MAX_JSON = 4 << 20; // a code never unpacks to more than this
+
+const r3 = (v) => Math.round(v * 1000) / 1000 || 0; // (|| 0: no -0)
+const packItems = (items) => items.map((it) => [it.key, it.state, r3(it.dx), r3(it.dy), r3(it.dz), r3(it.rx), r3(it.ry), r3(it.rz)]);
+
+function toBase64Url(bytes) {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+const fromBase64Url = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+
+async function deflate(text) {
+  const out = new Blob([text]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(out).arrayBuffer());
+}
+
+async function inflate(bytes) {
+  const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw')).getReader();
+  const parts = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > MAX_JSON) {
+      reader.cancel();
+      throw new Error('too big');
+    }
+    parts.push(value);
+  }
+  return new Blob(parts).text();
+}
+
+export async function setToCode(set) {
+  if (typeof CompressionStream !== 'function') throw new Error('this browser can’t make share codes');
+  return CODE_TAG + toBase64Url(await deflate(JSON.stringify({ n: set.name, i: packItems(set.items) })));
+}
+
+// The set in a pasted text (the code alone, or a message with one in it): not
+// stored yet, and without a picture. Throws when there is none, or it's damaged.
+export async function setFromCode(text) {
+  const m = CODE_RE.exec(String(text));
+  if (!m) throw new Error('That isn’t a set code (they start with PSD-SET1:)');
+  let d;
+  try {
+    d = JSON.parse(await inflate(fromBase64Url(m[1])));
+  } catch {
+    throw new Error('This set code is incomplete or damaged');
+  }
+  const rows = Array.isArray(d?.i) ? d.i.slice(0, MAX_ITEMS) : [];
+  const items = rows
+    .filter((row) => Array.isArray(row) && row.length === 8)
+    .map(([key, state, dx, dy, dz, rx, ry, rz]) => ({ key, state, dx, dy, dz, rx, ry, rz }))
+    .filter(validItem);
+  if (!items.length) throw new Error('This set code has no props in it');
+  const name = typeof d.n === 'string' && d.n.trim() ? d.n.trim().slice(0, 60) : defaultName(items);
+  return { id: newId(), v: 2, name, created: Date.now(), items, thumb: null };
+}
+
+// A set in the library with the same props (to 3 decimals), if there is one.
+export function sameSet(set) {
+  const key = JSON.stringify(packItems(set.items));
+  return sets.find((s) => JSON.stringify(packItems(s.items)) === key) || null;
+}
