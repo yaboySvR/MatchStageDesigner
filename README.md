@@ -94,7 +94,7 @@ node web/tools/rotation-check/verify_rotation.mjs
 | Q prop wheel | Hold Q over the viewport, release to pick. Multi-state props show their second state further out. |
 | Cardinal rotation buttons | Rotation ring around the selection, dial and ±15° / ±90° buttons in the panel, `[` `]` keys |
 | Export / Import .propsprofile | Export dialog (download, copy, append to an existing file) and Import (or drag and drop a file) |
-| Add Custom Prop | + Custom. The OBJ is stored in this browser only (IndexedDB). |
+| Add Custom Prop | Switched off for now (the *+ Custom* button is hidden; the code is still in `js/ui.js` and `js/catalog.js`). |
 | Modify Prop List | List. Your choices are saved in this browser. |
 
 ## Moving and rotating
@@ -141,6 +141,13 @@ default settings (`js/walk.js`).
 - **Finish**: click or `Enter` keeps the new view (orbiting then turns around
   what the crosshair was on); `Esc` or right-click goes back to where the
   walk started. The status bar shows the eye position while walking.
+- **Settings** (toolbar gear): change any of these keys (two per action) and
+  the start shortcut, the mouse sensitivity and invert mouse. Keys are saved
+  by their place on the keyboard (`KeyboardEvent.code`), so they stay put on
+  any layout, and are shown with what they type on yours. Esc, the mouse
+  buttons and the wheel are fixed; Ctrl / ⌘ keys can't be used (the browser
+  keeps Ctrl + W and the like). Saved in this browser (`js/settings.js`,
+  `js/settings-ui.js`).
 
 ## Prop sets
 

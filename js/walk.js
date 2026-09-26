@@ -9,6 +9,9 @@
 //   Shift / Alt       faster / slower ×5   wheel, + / -  change the speed
 //   . / ,             jump higher / lower
 //
+// Those are the default keys; Settings changes them and the mouse speed
+// (settings.js). Esc, the mouse buttons and the wheel stay as they are.
+//
 // The profile works in centimeters, so Blender's defaults become: walk speed
 // 2.5 m/s = 250 a second, eye height 1.6 m = 160, jumps 0.4 m, gravity
 // 9.81 m/s², teleports 0.2 s. The speed and the gravity choice are remembered.
@@ -26,10 +29,11 @@ import * as V from './viewport.js';
 import * as P from './physics.js';
 import * as store from './store.js';
 import { snapZ } from './snapping.js';
+import { settings, keyId, keyLabel } from './settings.js';
 
 const DEG = Math.PI / 180;
 const UNIT = 100;                  // world units per meter
-const LOOK = 0.15 * DEG;           // turn per pixel of mouse movement
+const LOOK = 0.15 * DEG;           // turn per pixel of mouse movement (× the sensitivity setting)
 const TOP = 85 * DEG;              // look up at most this far,
 const BOTTOM = -80 * DEG;          // and down this far
 const BOOST = 5;                   // Shift / Alt speed factor
@@ -41,31 +45,11 @@ const JUMP_SPEED_MIN = 1 * UNIT;   // a tap takes off at this speed
 const SPIKE = 500;                 // mouse jumps bigger than this are browser glitches
 const DOWN = { x: 0, y: 0, z: -1 };
 
-const KEYS = {
-  forward: ['KeyW', 'ArrowUp'], back: ['KeyS', 'ArrowDown'],
-  left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
-  up: ['KeyE'], down: ['KeyQ'], viewUp: ['KeyR'], viewDown: ['KeyF'],
-};
-const HELD = new Set(Object.values(KEYS).flat());
-const OURS = new Set([
-  ...HELD, 'Enter', 'NumpadEnter', 'Escape', 'Space', 'Tab', 'KeyV', 'Period', 'Comma',
-  'NumpadAdd', 'Equal', 'NumpadSubtract', 'Minus', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight',
-]);
-
 let w = null;                      // the walk in progress
+let byKey = new Map();             // key -> the walk action it does (settings.js), set as a walk starts
 let cross = null, coords = null, lockWatched = false;
 
 export const walking = () => !!w;
-
-// The physical key of a key event. Keys are read by position, so W A S D sit
-// the same on every layout; some remote-desktop and automation keyboards send
-// only the character, which is mapped back here.
-const BY_CHAR = { ' ': 'Space', '`': 'Backquote', '~': 'Backquote', '+': 'NumpadAdd', '=': 'Equal', '-': 'Minus', '.': 'Period', ',': 'Comma', Shift: 'ShiftLeft', Alt: 'AltLeft' };
-export function codeOf(e) {
-  if (e.code) return e.code;
-  const k = e.key || '';
-  return /^[a-z]$/i.test(k) ? `Key${k.toUpperCase()}` : BY_CHAR[k] || k;
-}
 
 const _dir = new THREE.Vector3();
 const _v = new THREE.Vector3();
@@ -83,9 +67,17 @@ function viewUp(out) {
   return out.set(-s * Math.cos(w.yaw), -s * Math.sin(w.yaw), Math.cos(w.pitch));
 }
 
-const held = (codes) => codes.some((c) => w.held.has(c));
-const axis = (plus, minus) => (held(plus) ? 1 : 0) - (held(minus) ? 1 : 0);
+// Is one of an action's keys down?
+const on = (action) => settings.walkKeys[action].some((k) => k && w.held.has(k));
+const axis = (plus, minus) => (on(plus) ? 1 : 0) - (on(minus) ? 1 : 0);
 const speedNow = () => S.walkSpeed * UNIT * (w.fast ? BOOST : w.slow ? 1 / BOOST : 1);
+
+function mapKeys() {
+  byKey = new Map();
+  for (const [action, keys] of Object.entries(settings.walkKeys)) {
+    for (const k of keys) if (k && !byKey.has(k)) byKey.set(k, action);
+  }
+}
 
 // ---------------------------------------------------------------- start / end
 
@@ -105,6 +97,7 @@ export function startWalk() {
     jumpHeight: 0.4 * UNIT,
     last: performance.now(), locked: false,
   };
+  mapKeys();
   V.controls.enabled = false;
   listen(true);
   if (!lockWatched) {
@@ -185,49 +178,71 @@ function swallowNext(type) {
   setTimeout(() => window.removeEventListener(type, stop, true), 800);
 }
 
-function setModifiers(e) {
-  if (w.fast === e.shiftKey && w.slow === e.altKey) return;
-  w.fast = e.shiftKey;
-  w.slow = e.altKey;
-  emit('walk'); // the speed shown changes
+// A Shift or Alt let go while another window had the keyboard never sends its
+// key-up; the flags on later events tell.
+function dropReleased(e) {
+  if (!e.shiftKey) w.held.delete('Shift');
+  if (!e.altKey) w.held.delete('Alt');
 }
 
+// Faster / slower follow their keys (the HUD shows the speed).
+function boost() {
+  const fast = on('fast'), slow = on('slow');
+  if (fast === w.fast && slow === w.slow) return;
+  w.fast = fast;
+  w.slow = slow;
+  emit('walk');
+}
+
+// Esc always goes back: with the mouse captured it's the browser's own key
+// for letting go, so it can't mean anything else.
 function onKeyDown(e) {
   e.stopImmediatePropagation();
-  setModifiers(e);
-  const code = codeOf(e);
-  if (!OURS.has(code)) return; // other keys keep their browser meaning
-  e.preventDefault();
-  if (HELD.has(code)) {
-    w.held.add(code);
+  const k = keyId(e);
+  dropReleased(e);
+  if (k === 'Escape') {
+    e.preventDefault();
+    end(false);
     return;
   }
-  if (e.repeat) return;
-  switch (code) {
-    case 'Enter': case 'NumpadEnter': end(true); break;
-    case 'Escape': end(false); break;
-    case 'Space': teleport(); break;
-    case 'Tab': setGravity(!S.walkGravity); break;
-    case 'KeyV': jump(); break;
-    case 'NumpadAdd': case 'Equal': changeSpeed(1); break;
-    case 'NumpadSubtract': case 'Minus': changeSpeed(-1); break;
-    case 'Period': changeJump(1); break;
-    case 'Comma': changeJump(-1); break;
+  const action = byKey.get(k);
+  if (action || k === 'Alt') e.preventDefault(); // a lone Alt opens the browser's menu
+  if (!action) return; // other keys keep their browser meaning
+  w.held.add(k);
+  if (!e.repeat) act(action);
+  if (w) boost();
+}
+
+function onKeyUp(e) {
+  const k = keyId(e);
+  w.held.delete(k);
+  dropReleased(e);
+  const action = byKey.get(k);
+  if (action === 'jump' && !on('jump')) jumpRelease();
+  if (action || k === 'Alt') e.preventDefault();
+  boost();
+}
+
+// What a key press does (held actions just work while their key is down).
+function act(action) {
+  switch (action) {
+    case 'confirm': end(true); break;
+    case 'cancel': end(false); break;
+    case 'teleport': teleport(); break;
+    case 'gravity': setGravity(!S.walkGravity); break;
+    case 'jump': jump(); break;
+    case 'speedUp': changeSpeed(1); break;
+    case 'speedDown': changeSpeed(-1); break;
+    case 'jumpUp': changeJump(1); break;
+    case 'jumpDown': changeJump(-1); break;
     default:
   }
 }
 
-function onKeyUp(e) {
-  const code = codeOf(e);
-  setModifiers({ shiftKey: e.shiftKey && !code.startsWith('Shift'), altKey: e.altKey && !code.startsWith('Alt') });
-  w.held.delete(code);
-  if (code === 'KeyV') jumpRelease();
-  if (OURS.has(code)) e.preventDefault(); // a lone Alt would open the browser menu
-}
-
 function onPointerMove(e) {
   e.stopImmediatePropagation();
-  setModifiers(e);
+  dropReleased(e);
+  boost();
   const x = e.movementX || 0, y = e.movementY || 0;
   if (Math.abs(x) > SPIKE || Math.abs(y) > SPIKE) return;
   w.look.x += x;
@@ -257,7 +272,7 @@ function onWheel(e) {
 
 function onBlur() {
   w.held.clear();
-  setModifiers({ shiftKey: false, altKey: false });
+  boost();
 }
 
 // The browser releases the mouse on Esc: go back, like Blender's Esc. Losing
@@ -343,11 +358,13 @@ function frame(now) {
   w.last = now;
   const cam = V.camera;
 
-  // Mouse right turns right, mouse up looks up (never past the limits).
+  // Mouse right turns right, mouse up looks up (down with Invert mouse),
+  // never past the limits.
   let turned = false;
   if (w.look.x || w.look.y) {
-    w.yaw -= w.look.x * LOOK;
-    const dp = -w.look.y * LOOK;
+    const look = LOOK * settings.lookSpeed;
+    w.yaw -= w.look.x * look;
+    const dp = w.look.y * look * (settings.invertMouse ? 1 : -1);
     if (dp > 0 && w.pitch < TOP) w.pitch = Math.min(w.pitch + dp, TOP);
     if (dp < 0 && w.pitch > BOTTOM) w.pitch = Math.max(w.pitch + dp, BOTTOM);
     w.look.x = w.look.y = 0;
@@ -376,8 +393,8 @@ function frame(now) {
 // along the view's up (both only without gravity), all at the same speed.
 function walkStep(d, dt, now) {
   const speed = speedNow();
-  const f = axis(KEYS.forward, KEYS.back);
-  const s = axis(KEYS.right, KEYS.left);
+  const f = axis('forward', 'back');
+  const s = axis('right', 'left');
   if (f) {
     const dir = lookDir(w.yaw, w.pitch, _v);
     if (S.walkGravity) dir.setZ(0).normalize();
@@ -388,8 +405,8 @@ function walkStep(d, dt, now) {
     d.y -= s * Math.cos(w.yaw);
   }
   if (!S.walkGravity) {
-    d.z += axis(KEYS.up, KEYS.down);
-    const u = axis(KEYS.viewUp, KEYS.viewDown);
+    d.z += axis('up', 'down');
+    const u = axis('viewUp', 'viewDown');
     if (u) d.addScaledVector(viewUp(_v), u);
   }
   if (d.lengthSq() > 1e-12) d.normalize().multiplyScalar(speed * dt);
@@ -438,17 +455,36 @@ function showEye() {
   coords.textContent = `Eye   X ${p.x.toFixed(1)}   Y ${p.y.toFixed(1)}   Z ${p.z.toFixed(1)}`;
 }
 
-const kbd = (k) => `<kbd>${k}</kbd>`;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const kbd = (k) => `<kbd>${esc(k)}</kbd>`;
 const meters = (v) => String(+v.toPrecision(3));
 
-// The walk's line in the viewport HUD (tools.js shows it).
+// The first key of each action, as keycaps ('' for an action with no key).
+const keys = (...actions) => actions.map((a) => settings.walkKeys[a].find(Boolean)).filter(Boolean).map((k) => kbd(keyLabel(k))).join(' ');
+const hint = (caps, text) => (caps ? `${caps} ${text}` : '');
+
+// The walk's lines in the viewport HUD (tools.js shows them), with the keys
+// as they are set.
 export function hudHtml() {
   if (!w) return '';
-  const boost = w.fast ? ' (fast)' : w.slow ? ' (slow)' : '';
-  const gravity = S.walkGravity
-    ? `gravity <b>on</b> (${kbd('Tab')}) · ${kbd('V')} jump <b>${meters(w.jumpHeight / UNIT)} m</b> (${kbd('.')} ${kbd(',')})`
-    : `gravity <b>off</b> (${kbd('Tab')}) · ${kbd('E')} ${kbd('Q')} up / down`;
-  return `<b>WALK</b> · speed <b>${meters(speedNow() / UNIT)} m/s</b>${boost} · ${gravity}<br>`
-    + `${kbd('W')} ${kbd('A')} ${kbd('S')} ${kbd('D')} move · ${kbd('Shift')} fast · ${kbd('Alt')} slow · wheel speed · `
-    + `${kbd('Space')} teleport · click keep view · ${kbd('Esc')} go back`;
+  const tab = keys('gravity');
+  const jumpKeys = keys('jumpUp', 'jumpDown');
+  const status = [
+    '<b>WALK</b>',
+    `speed <b>${meters(speedNow() / UNIT)} m/s</b>${w.fast ? ' (fast)' : w.slow ? ' (slow)' : ''}`,
+    `gravity <b>${S.walkGravity ? 'on' : 'off'}</b>${tab ? ` (${tab})` : ''}`,
+    S.walkGravity
+      ? hint(keys('jump'), `jump <b>${meters(w.jumpHeight / UNIT)} m</b>${jumpKeys ? ` (${jumpKeys})` : ''}`)
+      : hint(keys('up', 'down'), 'up / down'),
+  ];
+  const help = [
+    hint(keys('forward', 'left', 'back', 'right'), 'move'),
+    hint(keys('fast'), 'fast'),
+    hint(keys('slow'), 'slow'),
+    'wheel speed',
+    hint(keys('teleport'), 'teleport'),
+    'click keep view',
+    `${kbd('Esc')} go back`,
+  ];
+  return `${status.filter(Boolean).join(' · ')}<br>${help.filter(Boolean).join(' · ')}`;
 }

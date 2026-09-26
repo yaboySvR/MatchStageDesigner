@@ -24,7 +24,6 @@
 <div id="app">
   <aside id="sidebar">
     <header class="brand">
-      <div class="brand-mark">PPG</div>
       <div>
         <h1>Prop Profile Generator</h1>
         <p>Stage designer · web edition</p>
@@ -51,7 +50,8 @@
         </div>
         <div class="head-actions" id="props-actions">
           <button class="text-btn" id="btn-manage" title="Show or hide props in the catalog and wheel">List</button>
-          <button class="text-btn" id="btn-custom" title="Add your own OBJ as a prop">+ Custom</button>
+          <!-- Custom props are switched off for now (the dialog and code are still here). -->
+          <button class="text-btn" id="btn-custom" title="Add your own OBJ as a prop" hidden>+ Custom</button>
         </div>
         <div class="head-actions" id="sets-actions" hidden>
           <button class="text-btn" id="btn-sets-export" title="Download all your sets as a file (backup or share)">Export</button>
@@ -98,6 +98,9 @@
       <button class="chip" id="btn-undo" title="Undo (Ctrl+Z)">↶</button>
       <button class="chip" id="btn-redo" title="Redo (Ctrl+Shift+Z)">↷</button>
       <span class="sep"></span>
+      <button class="chip icon" id="btn-settings" title="Settings: walk keys and mouse speed" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
       <button class="chip" id="btn-help" title="Controls">?</button>
     </div>
 
@@ -200,6 +203,27 @@
   </form>
 </dialog>
 
+<dialog id="dlg-settings" class="dlg wide">
+  <form method="dialog">
+    <h3>Settings</h3>
+    <h4>Walk navigation</h4>
+    <div class="set-line">
+      <label class="set-range"><span>Mouse sensitivity</span>
+        <input type="range" id="set-look" min="0.2" max="3" step="0.05">
+        <output id="set-look-val" for="set-look"></output>
+      </label>
+      <label class="toggle"><input type="checkbox" id="set-invert"><span></span>Invert mouse (push up to look down)</label>
+    </div>
+    <p class="muted small">Click a key, then press the new one. <kbd>Backspace</kbd> clears it, <kbd>Esc</kbd> cancels. Keys go by their place on the keyboard, so they stay put on any layout.</p>
+    <div id="kb-list" class="kb-list"></div>
+    <p class="kb-note" id="kb-note" aria-live="polite"></p>
+    <div class="dlg-actions">
+      <button class="btn" type="button" id="set-reset" title="Blender's keys and mouse speed">Reset to defaults</button>
+      <button class="btn primary" value="ok">Done</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlg-help" class="dlg wide">
   <form method="dialog">
     <h3>Controls</h3>
@@ -213,16 +237,7 @@
           <dt>T · F · Home</dt><dd>Top view · frame selection · frame all</dd>
         </dl>
         <h4>Walk navigation</h4>
-        <dl>
-          <dt>Shift + ` · toolbar Walk</dt><dd>Walk around like Blender's walk mode: the mouse looks</dd>
-          <dt>W A S D · arrows</dt><dd>Move (E · Q straight up / down, R · F up / down the view)</dd>
-          <dt>Shift · Alt (hold)</dt><dd>Five times faster · slower</dd>
-          <dt>Wheel · + −</dt><dd>Walk speed (remembered)</dd>
-          <dt>Space</dt><dd>Teleport to what the crosshair is on</dd>
-          <dt>Tab · V</dt><dd>Gravity on / off (stay on the floor, fall off edges) · jump</dd>
-          <dt>Click · Enter</dt><dd>Keep the new view</dd>
-          <dt>Esc · right-click</dt><dd>Go back to where the walk started</dd>
-        </dl>
+        <dl id="help-walk"><!-- the keys as set, from settings-ui.js --></dl>
         <h4>Placing</h4>
         <dl>
           <dt>Click a prop tile</dt><dd>Start placing it</dd>

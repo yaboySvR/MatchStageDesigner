@@ -7,14 +7,16 @@
 //           the RX / RY / RZ fields, or R.
 // Physics:  P makes placing drop props from above the cursor; End drops the
 //           selection (physics.js runs the simulation).
-// Walking:  Shift+` starts Blender-style walk navigation (walk.js), which has
-//           the mouse and keyboard to itself until it ends.
+// Walking:  Shift+` (or the key set in Settings) starts Blender-style walk
+//           navigation (walk.js), which has the mouse and keyboard to itself
+//           until it ends.
 
 import { S, emit, on, ENVIRONMENTS } from './state.js';
 import * as V from './viewport.js';
 import * as store from './store.js';
 import * as P from './physics.js';
 import * as W from './walk.js';
+import { isWalkStart } from './settings.js';
 import { snapZ } from './snapping.js';
 import { getGeometry, geomNow, spanAlong, heightOf, footprintOf } from './geometry.js';
 import { getProp } from './catalog.js';
@@ -1050,8 +1052,8 @@ function onKeyDown(e) {
     return;
   }
 
-  // Shift+` walks, like Blender (by physical key: the one left of 1).
-  if (W.codeOf(e) === 'Backquote' && e.shiftKey) {
+  // The walk key: Shift+` like Blender (the key left of 1), unless changed.
+  if (isWalkStart(e)) {
     if (!e.repeat) beginWalk();
     e.preventDefault();
     return;

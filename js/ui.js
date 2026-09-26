@@ -15,6 +15,7 @@ import { parseObj } from './geometry.js';
 import { snapZ } from './snapping.js';
 import { toast } from './toast.js';
 import { initSetsUI, openSaveSetDialog } from './sets-ui.js';
+import { initSettingsUI } from './settings-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -31,6 +32,7 @@ export function initUI() {
   bindCatalog();
   initSetsUI();
   bindToolbar();
+  initSettingsUI();
   bindProfile();
   bindCustomDialog();
   bindManageDialog();
