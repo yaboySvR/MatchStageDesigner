@@ -16,12 +16,12 @@ import * as V from './viewport.js';
 import * as store from './store.js';
 import * as P from './physics.js';
 import * as W from './walk.js';
-import { isWalkStart } from './settings.js';
+import { isWalkStart, walkKeyLabels } from './settings.js';
 import { snapZ } from './snapping.js';
 import { getGeometry, geomNow, spanAlong, heightOf, footprintOf } from './geometry.js';
 import { getProp } from './catalog.js';
 import { placeSet } from './sets.js';
-import { yawToRz, rotZ, quatToMatrix, axisAngleMatrix, rotateProfile, apply } from './rotation.js';
+import { yawToRz, rotZ, quatToMatrix, axisAngleMatrix, rotateProfile, apply, mirrorX, mirrorY } from './rotation.js';
 import * as G from './gizmo.js';
 import { openWheel, wheelOpen, wheelMove, wheelConfirm, wheelCancel } from './wheel.js';
 import { toast } from './toast.js';
@@ -126,10 +126,11 @@ export function toggleMirror() {
 // Mouse -> point on the snap surface. Project onto Z=0 like the add-on, then
 // re-project onto the snapped height so raised surfaces (ring, roofs) land
 // under the cursor instead of offset by perspective. With physics on, the
-// point is whatever surface is really under the cursor (a table top, a step).
-// `plane` is the height (x, y) was found at; lines are dragged on it.
+// point is whatever surface is really under the cursor (a table top, a step),
+// and so it is while walking. `plane` is the height (x, y) was found at; lines
+// are dragged on it.
 function groundPoint(cx, cy) {
-  if (S.physics && P.ready()) {
+  if ((S.physics || W.walking()) && P.ready()) {
     const hit = P.surfaceOnRay(V.mouseRay(cx, cy));
     if (hit) return { ...hit, plane: hit.z };
   }
@@ -155,22 +156,30 @@ function setGround(p) {
   return Math.abs(p.z - s) <= 1.5 ? s : p.z;
 }
 
-// Physics drops single props, lines and stacks; a set is always placed
-// exactly as it was saved.
-const dropping = () => S.physics && !S.addSet;
+// Physics drops single props, lines and stacks (always while walking); a set
+// is always placed exactly as it was saved.
+const dropping = () => (S.physics || W.walking()) && !S.addSet;
+
+// Where placing aims: the crosshair while walking, else the mouse (null while
+// it is off the view).
+const aimPoint = () => (W.walking() ? V.viewCenter() : mouse.over ? mouse : null);
+
+// Facing for new props. While walking it turns with the view (in rotation
+// steps), so a prop keeps the same look toward you wherever you stand.
+const placeYawNow = () => (W.walking() ? norm360(Math.round((S.placeYaw + V.viewYaw()) / ROT_STEP) * ROT_STEP) : S.placeYaw);
 
 function computePlacements() {
   if (S.addSet) {
-    if (!mouse.over) return [];
-    const p = groundPoint(mouse.x, mouse.y);
-    return p ? placeSet(S.addSet, p.x, p.y, setGround(p), S.placeYaw, S.placeMirror) : [];
+    const at = aimPoint();
+    const p = at && groundPoint(at.x, at.y);
+    return p ? placeSet(S.addSet, p.x, p.y, setGround(p), placeYawNow(), S.placeMirror) : [];
   }
   const geom = geomNow(S.addKey, S.addState);
   if (!geom) return [];
   const f = add.first;
   if (!f) {
-    if (!mouse.over) return [];
-    const p = groundPoint(mouse.x, mouse.y);
+    const at = aimPoint();
+    const p = at && groundPoint(at.x, at.y);
     return p ? [{ x: p.x, y: p.y, z: p.z }] : [];
   }
 
@@ -204,14 +213,14 @@ function computePlacements() {
 // The current placements as full prop records.
 function placementItems() {
   if (S.addSet) return add.placements;
-  const rz = yawToRz(S.placeYaw);
+  const rz = yawToRz(placeYawNow());
   return add.placements.map((p) => ({ key: S.addKey, state: S.addState, ...p, rx: 0, ry: 0, rz }));
 }
 
-// With physics on, the ghosts hang above the cursor with a guide down to
-// where they'll fall. Hidden while walking (the cursor is too).
+// With physics on (and while walking, at the crosshair), the ghosts hang
+// above the spot with a guide down to where they'll fall.
 function refreshAdd() {
-  if (S.mode !== 'add' || W.walking()) return;
+  if (S.mode !== 'add') return;
   add.placements = computePlacements();
   let items = placementItems();
   if (dropping()) items = P.planDrop(items, S.dropHeight);
@@ -672,6 +681,37 @@ export function duplicateSelected() {
   selectionChanged();
 }
 
+// Mirrored copies of the selection on the other side of the ring, across
+// the arena's center line: 'lr' flips what is left / right on screen, 'fb'
+// what is near / far (snapped to X or Y, like the arrow keys). A copy's height
+// follows the surface under it, and props on the center line are skipped.
+export function mirrorSelected(which) {
+  P.settleNow();
+  const props = store.selectedProps();
+  if (!props.length || op || gdrag) return;
+  const { forward, right } = V.viewAxes();
+  const acrossX = (which === 'lr' ? right : forward)[0] !== 0; // x -> -x, else y -> -y
+  const src = props.filter((p) => Math.abs(acrossX ? p.x : p.y) > 0.5);
+  const skipped = props.length - src.length;
+  if (!src.length) {
+    toast(`${props.length === 1 ? 'That prop is' : 'Those props are'} on the center line already`);
+    return;
+  }
+  const exclude = new Set(props.map((p) => p.id));
+  store.checkpoint();
+  const copies = src.map((p) => {
+    const x = acrossX ? -p.x : p.x, y = acrossX ? p.y : -p.y;
+    const [rx, ry, rz] = (acrossX ? mirrorX : mirrorY)(p.rx, p.ry, p.rz);
+    const dz = S.autoSnap ? snapZ(x, y, exclude) - snapZ(p.x, p.y, exclude) : 0;
+    return store.addProp({ key: p.key, state: p.state, x, y, z: p.z + dz, rx, ry, rz });
+  });
+  S.selected = new Set(copies.map((c) => c.id));
+  store.changed();
+  selectionChanged();
+  const n = copies.length;
+  toast(`Mirrored ${n} prop${n === 1 ? '' : 's'} to the other side${skipped ? ` · ${skipped} on the center line skipped` : ''} · Ctrl+Z to undo`);
+}
+
 // Undo during a physics fall cancels the fall.
 export function doUndo() {
   if (op || gdrag) return;
@@ -698,18 +738,29 @@ export function beginWalk() {
   W.startWalk();
 }
 
+// Walking, a prop being placed moves to the crosshair (on the real surfaces,
+// so the physics engine loads); afterwards it follows the mouse again.
 function walkChanged() {
   if (W.walking()) {
-    V.setGhosts([]);
-    V.setDropGuides([]);
     setHover(null);
     if (G.setHovered(null)) V.requestRender();
+    if (S.mode === 'add') loadPhysics().catch(() => {});
   } else {
     coordsEl.textContent = 'X — Y — Z —';
     updateCoords();
-    refreshAdd();
   }
+  refreshAdd();
   updateHud();
+}
+
+// G while walking: drop the prop at the crosshair.
+function walkDrop() {
+  if (S.mode === 'add' && (S.addKey || S.addSet)) {
+    placeNow();
+    return;
+  }
+  const wheel = walkKeyLabels('wheel')[0];
+  toast(wheel ? `Pick a prop first: hold ${wheel} for the prop wheel` : 'Pick a prop first');
 }
 
 function openWheelHere() {
@@ -807,7 +858,7 @@ function updateHud() {
   } else if (S.selected.size) {
     html = S.gizmo === 'rotate'
       ? `Drag a coloured ring to rotate on that axis · drag inside the rings to tumble freely · ${kbd('Shift')} no snap · ${kbd('W')} move`
-      : `Drag an arrow or square to move · drag the prop to slide it · arrows nudge · ${kbd('[')} ${kbd(']')} turn ${ROT_STEP}° · ${kbd('End')} drop · ${kbd('E')} rotate`;
+      : `Drag an arrow or square to move · drag the prop to slide it · arrows nudge · ${kbd('[')} ${kbd(']')} turn ${ROT_STEP}° · ${kbd('M')} mirror · ${kbd('End')} drop · ${kbd('E')} rotate`;
   } else if (!S.props.length) {
     html = `Pick a prop on the left, or hold ${kbd('Q')} over the arena`;
   }
@@ -884,6 +935,13 @@ export function initTools() {
   setMode('select');
   on('props', () => { refreshGizmo(); updateHud(); });
   on('walk', walkChanged);
+  on('walk-drop', walkDrop);
+  on('walk-turn', (delta) => { if (S.mode === 'add') rotatePlacement(delta); });
+  on('walk-pick', (key, state) => {
+    enterAdd(key, state);
+    loadPhysics().catch(() => {});
+  });
+  on('camera', () => { if (W.walking() && S.mode === 'add') refreshAdd(); });
   V.onCamera(() => emit('camera'));
   store.setBeforeEdit(P.settleNow);
   P.setFrameHook(() => {
@@ -1094,7 +1152,11 @@ function onKeyDown(e) {
       }
       break;
     case 'q': if (!e.repeat) openWheelHere(); break;
-    case 'm': if (S.mode === 'add' && S.addSet) toggleMirror(); else return; break;
+    case 'm':
+      if (S.mode === 'add' && S.addSet) toggleMirror();
+      else if (S.mode === 'select' && S.selected.size) mirrorSelected(e.shiftKey ? 'fb' : 'lr');
+      else return;
+      break;
     case 'w': setGizmoMode('move'); break;
     case 'e': setGizmoMode('rotate'); break;
     case 'p': setPhysics(!S.physics); break;

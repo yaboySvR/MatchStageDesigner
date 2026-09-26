@@ -6,7 +6,7 @@
 
 import { getProp } from './catalog.js';
 import { snapZ } from './snapping.js';
-import { rotateProfile, rotZ } from './rotation.js';
+import { rotateProfile, rotZ, mirrorX } from './rotation.js';
 
 const STORE_KEY = 'ppg.sets';
 const D2R = Math.PI / 180;
@@ -86,13 +86,6 @@ export function captureSet(props, name) {
   return { id: newId(), v: 2, name: name || defaultName(props), created: Date.now(), items, thumb: null };
 }
 
-// Mirror left-right in the set's own frame: reflecting X turns
-// Ry(ry)·Rz(-rz)·Rx(rx) into Ry(-ry)·Rz(rz)·Rx(rx), i.e. (rx, -ry, -rz).
-function mirrored(rx, ry, rz) {
-  const nrz = rz === 180 || rz === -180 ? 180 : -rz || 0;
-  return [rx, -ry || 0, nrz];
-}
-
 // World placements for `set` with its center at (x, y) and its ground at
 // groundZ, turned by yaw degrees (counter-clockwise from above) and optionally
 // mirrored. Unturned and unmirrored, every prop keeps its exact rotation
@@ -106,7 +99,7 @@ export function placeSet(set, x, y, groundZ, yaw = 0, mirror = false) {
     .map((it) => {
       const dx = mirror ? -it.dx : it.dx;
       let rot = [it.rx, it.ry, it.rz];
-      if (mirror) rot = mirrored(...rot);
+      if (mirror) rot = mirrorX(...rot); // left-right in the set's own frame
       if (turned) rot = rotateProfile(...rot, D, yaw);
       return {
         key: it.key, state: it.state,

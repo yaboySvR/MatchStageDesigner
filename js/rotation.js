@@ -80,6 +80,17 @@ export function rotateProfile(rx, ry, rz, D, zTurn = null) {
   return matrixToProfile(mul(D, profileToMatrix(rx, ry, rz)));
 }
 
+// The orientation of a prop's mirror image across the X axis (x -> -x), for
+// props that are left-right symmetric in their own frame: reflecting X turns
+// Ry(ry)·Rz(-rz)·Rx(rx) into Ry(-ry)·Rz(rz)·Rx(rx), i.e. (rx, -ry, -rz).
+export function mirrorX(rx, ry, rz) {
+  const nrz = rz === 180 || rz === -180 ? 180 : -rz || 0;
+  return [rx, -ry || 0, nrz];
+}
+
+// Across the Y axis (y -> -y): the X mirror turned 180° around Z.
+export const mirrorY = (rx, ry, rz) => rotateProfile(...mirrorX(rx, ry, rz), rotZ(180), 180);
+
 // ---------------------------------------------------------------- 3x3 helpers
 
 export function mul(A, B) {

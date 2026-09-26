@@ -106,8 +106,8 @@ function renderKeys() {
   const start = `<div class="kb-group"><h5>Start</h5>
     <div class="kb-row start"><span class="kb-name">Start walking<small>or the toolbar’s Walk</small></span>
     <button type="button" class="kb-key" data-start title="Click, then press the keys"></button></div></div>`;
-  const [move, ...rest] = WALK_GROUPS;
-  $('kb-list').innerHTML = `<div class="kb-col">${start}${group(move)}</div><div class="kb-col">${rest.map(group).join('')}</div>`;
+  const col = (left) => WALK_GROUPS.filter((g) => !!g.left === left).map(group).join('');
+  $('kb-list').innerHTML = `<div class="kb-col">${start}${col(true)}</div><div class="kb-col">${col(false)}</div>`;
   paintAll();
 }
 
@@ -195,6 +195,7 @@ function refreshLabels() {
     [`Wheel · ${list('speedUp')} · ${list('speedDown')}`, 'Walk speed (remembered)'],
     [list('teleport'), 'Teleport to what the crosshair is on'],
     [`${list('gravity')} · ${list('jump')}`, 'Gravity on / off (stay on the floor, fall off edges) · jump'],
+    [`${list('place')} · ${list('wheel')} (hold) · ${list('turnLeft')} ${list('turnRight')}`, 'Drop the prop you were placing at the crosshair (physics) · prop wheel · turn it'],
     [`Click · ${list('confirm')}`, 'Keep the new view'],
     [['Esc', 'right-click', ...back].join(' · '), 'Go back to where the walk started'],
     ['Settings (gear)', 'Change these keys and the mouse speed'],

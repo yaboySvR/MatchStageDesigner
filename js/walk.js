@@ -9,6 +9,11 @@
 //   Shift / Alt       faster / slower ×5   wheel, + / -  change the speed
 //   . / ,             jump higher / lower
 //
+// Placing while walking: the prop being placed when the walk started hangs
+// at the crosshair; G drops it there (physics; a set goes down as saved),
+// hold C for the prop wheel, [ / ] turn it. tools.js does the placing; this
+// file only tells it when (events 'walk-drop', 'walk-turn', 'walk-pick').
+//
 // Those are the default keys; Settings changes them and the mouse speed
 // (settings.js). Esc, the mouse buttons and the wheel stay as they are.
 //
@@ -30,6 +35,8 @@ import * as P from './physics.js';
 import * as store from './store.js';
 import { snapZ } from './snapping.js';
 import { settings, keyId, keyLabel } from './settings.js';
+import { getProp } from './catalog.js';
+import { openWheel, wheelMove, wheelConfirm, wheelCancel } from './wheel.js';
 
 const DEG = Math.PI / 180;
 const UNIT = 100;                  // world units per meter
@@ -43,6 +50,7 @@ const TELEPORT_TIME = 0.2;         // seconds
 const JUMP_TIME_MAX = 0.2;         // hold V this long for a full jump;
 const JUMP_SPEED_MIN = 1 * UNIT;   // a tap takes off at this speed
 const SPIKE = 500;                 // mouse jumps bigger than this are browser glitches
+const PICK_REACH = 360;            // prop wheel: how far the (hidden) pointer can go from the middle
 const DOWN = { x: 0, y: 0, z: -1 };
 
 let w = null;                      // the walk in progress
@@ -94,6 +102,7 @@ export function startWalk() {
     vel: new THREE.Vector3(),      // sideways speed while walking (a jump keeps it)
     air: null,                     // falling / jumping
     teleport: null,
+    picking: null,                 // prop wheel open: { cx, cy, x, y } (its middle, pointer offset)
     jumpHeight: 0.4 * UNIT,
     last: performance.now(), locked: false,
   };
@@ -127,6 +136,7 @@ function end(keep) {
   const s = w;
   if (!s) return;
   w = null;
+  if (s.picking) wheelCancel();
   listen(false);
   V.onFrame(null);
   if (document.pointerLockElement) document.exitPointerLock();
@@ -219,6 +229,7 @@ function onKeyUp(e) {
   dropReleased(e);
   const action = byKey.get(k);
   if (action === 'jump' && !on('jump')) jumpRelease();
+  if (action === 'wheel' && !on('wheel')) closeWheel(true);
   if (action || k === 'Alt') e.preventDefault();
   boost();
 }
@@ -235,8 +246,31 @@ function act(action) {
     case 'speedDown': changeSpeed(-1); break;
     case 'jumpUp': changeJump(1); break;
     case 'jumpDown': changeJump(-1); break;
-    default:
+    case 'place': emit('walk-drop'); break;
+    case 'turnLeft': emit('walk-turn', 15); break;
+    case 'turnRight': emit('walk-turn', -15); break;
+    case 'wheel': openPropWheel(); break;
+    default: // held actions (moving, faster / slower) work while down
   }
+}
+
+// The prop wheel in the middle of the view. While it's open the mouse moves
+// its (hidden) pointer instead of looking; letting go of the key picks.
+function openPropWheel() {
+  if (w.picking) return;
+  const c = V.viewCenter();
+  if (!openWheel(c.x, c.y, (key, state) => emit('walk-pick', key, state))) return;
+  w.picking = { cx: c.x, cy: c.y, x: 0, y: 0 };
+  wheelMove(c.x, c.y);
+  cross.hidden = true;
+}
+
+function closeWheel(pick) {
+  if (!w.picking) return;
+  w.picking = null;
+  cross.hidden = false;
+  if (pick) wheelConfirm();
+  else wheelCancel();
 }
 
 function onPointerMove(e) {
@@ -245,6 +279,15 @@ function onPointerMove(e) {
   boost();
   const x = e.movementX || 0, y = e.movementY || 0;
   if (Math.abs(x) > SPIKE || Math.abs(y) > SPIKE) return;
+  const p = w.picking;
+  if (p) {
+    p.x += x;
+    p.y += y;
+    const d = Math.hypot(p.x, p.y);
+    if (d > PICK_REACH) { p.x *= PICK_REACH / d; p.y *= PICK_REACH / d; }
+    wheelMove(p.cx + p.x, p.cy + p.y);
+    return;
+  }
   w.look.x += x;
   w.look.y += y;
 }
@@ -272,6 +315,7 @@ function onWheel(e) {
 
 function onBlur() {
   w.held.clear();
+  closeWheel(false);
   boost();
 }
 
@@ -469,6 +513,8 @@ export function hudHtml() {
   if (!w) return '';
   const tab = keys('gravity');
   const jumpKeys = keys('jumpUp', 'jumpDown');
+  const placing = S.mode === 'add' ? S.addSet?.name ?? getProp(S.addKey)?.name : null;
+  const placeKeys = [hint(keys('place'), 'drop'), hint(keys('turnLeft', 'turnRight'), 'turn')].filter(Boolean).join(', ');
   const status = [
     '<b>WALK</b>',
     `speed <b>${meters(speedNow() / UNIT)} m/s</b>${w.fast ? ' (fast)' : w.slow ? ' (slow)' : ''}`,
@@ -476,6 +522,7 @@ export function hudHtml() {
     S.walkGravity
       ? hint(keys('jump'), `jump <b>${meters(w.jumpHeight / UNIT)} m</b>${jumpKeys ? ` (${jumpKeys})` : ''}`)
       : hint(keys('up', 'down'), 'up / down'),
+    placing && `placing <b>${esc(placing)}</b>${placeKeys ? ` (${placeKeys})` : ''}`,
   ];
   const help = [
     hint(keys('forward', 'left', 'back', 'right'), 'move'),
@@ -483,6 +530,7 @@ export function hudHtml() {
     hint(keys('slow'), 'slow'),
     'wheel speed',
     hint(keys('teleport'), 'teleport'),
+    hint(keys('wheel'), 'props'),
     'click keep view',
     `${kbd('Esc')} go back`,
   ];

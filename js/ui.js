@@ -16,6 +16,8 @@ import { snapZ } from './snapping.js';
 import { toast } from './toast.js';
 import { initSetsUI, openSaveSetDialog } from './sets-ui.js';
 import { initSettingsUI } from './settings-ui.js';
+import { keyId } from './settings.js';
+import * as GF from './gamefolder.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -247,7 +249,11 @@ function renderCard() {
         ${field('y', 'Y', 'y')}
         ${field('z', 'Z', 'z', { title: S.autoSnap ? 'Height above the surface is kept when the prop moves' : '' })}
       </div>
-      <button type="button" class="text-btn level" data-act="drop" title="Let ${one ? 'it' : 'them'} fall with physics until ${one ? 'it comes' : 'they come'} to rest (End)">⤓ Drop with physics</button>`;
+      <button type="button" class="text-btn level" data-act="drop" title="Let ${one ? 'it' : 'them'} fall with physics until ${one ? 'it comes' : 'they come'} to rest (End)">⤓ Drop with physics</button>
+      <div class="mirror-row"><span>Mirror a copy</span>
+        <button type="button" class="text-btn" data-mirror="lr" title="Copy to the other side of the ring, left ↔ right as you look at it (M)">⇋ Left ↔ right</button>
+        <button type="button" class="text-btn" data-mirror="fb" title="Copy to the other side of the ring, front ↔ back as you look at it (Shift+M)">⇵ Front ↔ back</button>
+      </div>`;
 
   const rotation = one ? `
       <div class="sec-title">Rotation<span>profile values · E handles</span></div>
@@ -312,6 +318,7 @@ function bindCard(card) {
   card.querySelector('[data-act="del"]').addEventListener('click', tools.deleteSelected);
   card.querySelector('[data-act="level"]')?.addEventListener('click', tools.levelSelection);
   card.querySelector('[data-act="drop"]').addEventListener('click', tools.dropSelected);
+  card.querySelectorAll('[data-mirror]').forEach((b) => b.addEventListener('click', () => tools.mirrorSelected(b.dataset.mirror)));
   card.querySelectorAll('[data-rot]').forEach((b) => b.addEventListener('click', () => tools.rotateBy(+b.dataset.rot)));
   card.querySelectorAll('[data-pivot]').forEach((b) => b.addEventListener('click', () => {
     S.pivot = b.dataset.pivot;
@@ -540,9 +547,11 @@ function refreshPropSetPreview() {
   } catch (e) {
     box.innerHTML = `<p class="form-error">This scene can't be written as a game file: ${esc(e.message)}</p>`;
     $('exp-download').disabled = true;
+    $('exp-folder').disabled = true;
     return null;
   }
   $('exp-download').disabled = false;
+  $('exp-folder').disabled = false;
   const kept = S.jsfb?.keep.length || 0;
   const lines = S.unknownLines.length;
   const total = S.props.length + kept + lines;
@@ -557,8 +566,76 @@ function refreshPropSetPreview() {
     <p class="${same ? 'ok' : 'muted'}">${same
       ? `✓ Unchanged: identical to the ${esc(S.jsfb.name)} you opened.`
       : S.jsfb ? `Edits to ${esc(S.jsfb.name)}. Everything else in the file is kept.` : 'A new prop set, written the way the intermediary program writes them.'}</p>
-    <p class="muted">Put it in place of the game's file for that match type, and keep a copy of the original.</p>`;
+    <p class="muted">${GF.supported()
+      ? '<b>Save to game folder</b> writes it over the game’s file for that match type and keeps the original as .bak; or Download it and put it in place yourself.'
+      : 'Put it in place of the game’s file for that match type, and keep a copy of the original.'}</p>`;
   return bytes;
+}
+
+// ---------------------------------------------------------------- the game folder (gamefolder.js)
+
+async function showFolderLine() {
+  const line = $('exp-folder-line');
+  const dir = await GF.folder();
+  line.innerHTML = dir
+    ? `Game folder: <b>${esc(dir.name)}</b> <button type="button" class="text-btn" id="exp-folder-change">Change folder</button>`
+    : 'The first save asks for the folder that holds the game’s PropsSet files. Chrome won’t open system folders such as Program Files; pick the mod tool’s folder then.';
+  $('exp-folder-change')?.addEventListener('click', async () => {
+    try {
+      await pickAndReport();
+    } catch (e) {
+      if (e.name !== 'AbortError') toast(`Couldn’t use that folder: ${e.message}`, { error: true });
+    }
+    showFolderLine();
+  });
+}
+
+async function pickAndReport() {
+  const { name, propSets } = await GF.pickFolder();
+  if (!propSets) toast(`No PropsSet files in ${name}. If that's the wrong folder, use Change folder.`, { ms: 6000 });
+  return name;
+}
+
+// Save bytes as `name` in the game folder, asking for the folder first if
+// none is picked yet. Returns whether it saved.
+async function saveToFolder(name, bytes) {
+  try {
+    if (!(await GF.folder())) await pickAndReport();
+    const { folder, backedUp } = await GF.saveFile(name, bytes);
+    toast(`Saved ${name} into ${folder}${backedUp ? ` (the original is kept as ${name}.bak)` : ''}`, { ms: 5000 });
+    return true;
+  } catch (e) {
+    if (e.name !== 'AbortError') toast(`Couldn’t save into the game folder: ${e.message}`, { error: true });
+    return false;
+  } finally {
+    showFolderLine();
+  }
+}
+
+// Ctrl+S: a scene opened from a game file goes straight back into the game
+// folder; anything else opens Export. Inside Export it's the main button.
+async function quickSave() {
+  const exp = $('dlg-export');
+  if (exp.open) {
+    const main = !$('exp-folder').hidden ? $('exp-folder') : $('exp-download');
+    if (!main.disabled) main.click();
+    return;
+  }
+  if (document.querySelector('dialog[open]')) return;
+  settleNow();
+  if (S.jsfb && GF.supported() && (await GF.folder())) {
+    let bytes;
+    try {
+      bytes = writePropSet({ props: S.props, unknownLines: S.unknownLines, file: S.jsfb });
+    } catch (e) {
+      toast(`This scene can't be written as a game file: ${e.message}`, { error: true });
+      return;
+    }
+    const name = /\.jsfb$/i.test(S.jsfb.name) ? S.jsfb.name : `${S.jsfb.name}.jsfb`;
+    saveToFolder(name, bytes);
+    return;
+  }
+  $('btn-export').click();
 }
 
 function setExportFormat(format) {
@@ -575,9 +652,16 @@ function setExportFormat(format) {
   $('exp-jsfb').hidden = !jsfb;
   $('exp-copy').hidden = jsfb;
   $('exp-append').hidden = jsfb;
+  const toFolder = jsfb && GF.supported();
+  $('exp-folder').hidden = !toFolder;
+  $('exp-folder-line').hidden = !toFolder;
+  $('exp-folder').classList.toggle('primary', toFolder);
+  $('exp-download').classList.toggle('primary', !toFolder);
+  if (toFolder) showFolderLine();
   $('exp-selected').parentElement.hidden = jsfb || !S.selected.size;
   $('exp-unknown').parentElement.hidden = jsfb || !unrecognized().length;
   $('exp-download').disabled = false;
+  $('exp-folder').disabled = false;
   refreshExportPreview();
 }
 
@@ -679,6 +763,16 @@ function bindProfile() {
     if (expFormat === 'jsfb') toast(`Saved ${name}`);
     dlg.close();
   });
+  $('exp-folder').addEventListener('click', async () => {
+    const bytes = refreshExportPreview();
+    if (bytes == null) return;
+    if (await saveToFolder(exportFileName(), bytes)) dlg.close();
+  });
+  window.addEventListener('keydown', (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || keyId(e) !== 'KeyS') return;
+    e.preventDefault();
+    if (!e.repeat) quickSave();
+  });
   $('exp-copy').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(refreshExportPreview());
@@ -700,7 +794,19 @@ function bindProfile() {
     toast(`Saved ${file.name} with your props appended`);
   });
 
-  $('btn-import').addEventListener('click', () => $('file-import').click());
+  // With a game folder picked (Chrome / Edge), Import's dialog opens in it.
+  $('btn-import').addEventListener('click', async () => {
+    if (GF.supported() && GF.canOpenFromFolder() && (await GF.folder())) {
+      try {
+        const file = await GF.openFromFolder();
+        if (file) importFile(file);
+      } catch (e) {
+        toast(`Cannot open: ${e.message}`, { error: true });
+      }
+      return;
+    }
+    $('file-import').click();
+  });
   $('file-import').addEventListener('change', (e) => {
     const file = e.target.files[0];
     e.target.value = '';

@@ -118,6 +118,13 @@ node web/tools/rotation-check/verify_rotation.mjs
 - **Several props**: choose *Each in place* or *Around center* in the panel.
   The X / Y fields then move the group's center.
 - **Duplicate** (Ctrl+D) places the copy next to the original.
+- **Mirror** (`M`, or the panel's *Mirror a copy*) copies the selection to
+  the other side of the ring, left ↔ right as you look at it; `Shift+M` goes
+  front ↔ back. The mirror line is the arena's center (X = 0 or Y = 0,
+  whichever matches the view). Positions flip, rotations become
+  (rx, −ry, −rz) across X and the same turned 180° across Y (props that are
+  left-right symmetric look exactly mirrored), and with auto snapping a copy
+  sits on the surface under it. Props on the center line are skipped.
 - G / R still work Blender-style (click to finish, Esc cancels).
 
 ## Walk navigation
@@ -141,6 +148,12 @@ default settings (`js/walk.js`).
 - **Finish**: click or `Enter` keeps the new view (orbiting then turns around
   what the crosshair was on); `Esc` or right-click goes back to where the
   walk started. The status bar shows the eye position while walking.
+- **Placing while walking**: start walking while placing a prop (or pick one
+  with the prop wheel: hold `C`, move the mouse, let go). Its ghost hangs at
+  the crosshair with the drop guide; `G` drops it there with physics (a set
+  goes down exactly as saved), `[` / `]` turn it 15°. Its facing turns with
+  your view, so it looks the same from wherever you stand. The aim looks
+  through ropes and cage walls to the surface behind them.
 - **Settings** (toolbar gear): change any of these keys (two per action) and
   the start shortcut, the mouse sensitivity and invert mouse. Keys are saved
   by their place on the keyboard (`KeyboardEvent.code`), so they stay put on
@@ -186,6 +199,14 @@ The format and how it was worked out are in [`jsfb's/README.md`](jsfb's/README.m
 - **Save**: *Export* → *Game prop set*. The name defaults to the file you
   opened, and the name field suggests the game's match types. Put the
   downloaded file in place of the game's file, and keep a copy of the original.
+- **Save to game folder** (Chrome / Edge): *Export* → *Save to game folder*,
+  or `Ctrl+S` for a scene opened from a game file. The first time, pick the
+  folder with the `PropsSet_*.jsfb` files; the browser remembers it (and may
+  ask again for permission to edit it). The first save over a file keeps the
+  original next to it as `<name>.jsfb.bak`, never overwritten afterwards.
+  With a folder picked, *Import* opens in it too. Chrome won't open system
+  folders such as Program Files; pick the mod tool's working folder then.
+  Other browsers keep *Download*. Code: `js/gamefolder.js`.
 - **Nothing is lost**: each prop keeps the fields the designer doesn't show
   (hashes, scale, extra lists) and writes them back. Props the catalog doesn't
   know (the ambulance, the casket, the WarGames pedestals...) aren't drawn but
@@ -218,7 +239,8 @@ Drop props and let them fall into place.
   saved.
 - **While placing**: `↑` / `↓` change the drop height (60 by default; Shift
   ×5, Alt 1). Shift + click adds a random tumble. With physics on, the cursor
-  picks the surface it is over, so pointing at a table drops onto the table.
+  picks the surface it is over, so pointing at a table drops onto the table;
+  ropes and cage walls in the way are looked through.
 - **Existing props**: *Drop with physics* in the panel (or `End`) lets the
   selection fall from where it is. A prop that starts inside something (like a
   barrel whose center sits on the floor) is lifted clear first.

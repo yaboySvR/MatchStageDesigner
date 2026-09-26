@@ -331,6 +331,10 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .adv summary:hover { color: var(--text); }
 .adv p { color: var(--muted); font-size: 11.5px; margin: 8px 0; }
 
+.mirror-row { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 4px; margin-top: 2px; font-size: 12px; }
+.mirror-row > span { color: var(--muted); margin-right: 2px; }
+.mirror-row .text-btn { font-size: 12px; padding: 3px 5px; }
+
 .insp-actions { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); margin-top: 12px; }
 .insp-actions .btn { flex: 1; padding: 8px 6px; }
 .btn.danger:hover { border-color: var(--danger); color: var(--danger); }
@@ -459,6 +463,8 @@ textarea { height: 170px; resize: vertical; font: 11.5px/1.5 ui-monospace, Conso
 .exp-jsfb p { margin: 0 0 6px; }
 .exp-jsfb p:last-child { margin-bottom: 0; }
 .exp-jsfb .ok { color: #86e486; }
+.exp-folder { margin: 10px 0 0 !important; }
+.exp-folder .text-btn { padding: 2px 4px; font-size: 12px; }
 .dlg-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 .form-error { color: var(--danger); min-height: 1em; margin: 0; }
 #manage-list { max-height: 50vh; overflow-y: auto; display: grid; gap: 2px; }

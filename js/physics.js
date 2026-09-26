@@ -238,19 +238,24 @@ export function castRay(o, d, maxDist = 100000) {
 }
 
 // First surface along a ray (the camera ray through the cursor) that a prop
-// could rest on. Steep hits (walls, the cage mesh) are looked through.
+// could rest on. Steep hits (walls, ropes, the cage mesh) are looked through
+// by carrying on just past them. That has to be hit by hit: a model is one
+// collider, and a ray reports only its first hit on each (seen from ringside,
+// a rope, which would hide the mat behind it).
+const LOOK_THROUGH = 32;     // steep hits passed at most
 export function surfaceOnRay({ origin: o, direction: d }) {
   if (!world) return null;
   syncStatic();
-  let best = Infinity;
-  const ray = new R.Ray({ x: o.x * M, y: o.y * M, z: o.z * M }, { x: d.x, y: d.y, z: d.z });
-  world.intersectionsWithRay(ray, 2000, true, (hit) => {
-    if (Math.abs(hit.normal.z) >= 0.5) best = Math.min(best, hit.timeOfImpact);
-    return true;
-  });
-  if (best === Infinity) return null;
-  const t = best / M;
-  return { x: o.x + d.x * t, y: o.y + d.y * t, z: o.z + d.z * t };
+  let t = 0; // cm along the ray
+  for (let n = 0; n < LOOK_THROUGH; n++) {
+    const from = { x: (o.x + d.x * t) * M, y: (o.y + d.y * t) * M, z: (o.z + d.z * t) * M };
+    const hit = world.castRayAndGetNormal(new R.Ray(from, { x: d.x, y: d.y, z: d.z }), 2000, true);
+    if (!hit) return null;
+    t += hit.timeOfImpact / M;
+    if (Math.abs(hit.normal.z) >= 0.5) return { x: o.x + d.x * t, y: o.y + d.y * t, z: o.z + d.z * t };
+    t += 0.5;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------- planning a drop

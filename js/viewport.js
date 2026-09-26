@@ -385,6 +385,12 @@ export function pickProp(clientX, clientY) {
   return hits.length ? hits[0].object.userData.id : null;
 }
 
+// The middle of the view in client coordinates (walk navigation's crosshair).
+export function viewCenter() {
+  const r = renderer.domElement.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
 // The camera ray through a screen point ({ origin, direction }, reused: read
 // it right away).
 export function mouseRay(clientX, clientY) {

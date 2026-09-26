@@ -150,11 +150,13 @@
       <textarea id="exp-preview" readonly spellcheck="false"></textarea>
     </label>
     <div class="exp-jsfb" id="exp-jsfb" hidden></div>
+    <p class="exp-folder muted small" id="exp-folder-line" hidden></p>
     <div class="dlg-actions">
       <button class="btn" value="cancel">Close</button>
       <button class="btn" type="button" id="exp-append" title="Add these props to the end of an existing .propsprofile">Append to file…</button>
       <button class="btn" type="button" id="exp-copy">Copy</button>
       <button class="btn primary" type="button" id="exp-download">Download</button>
+      <button class="btn" type="button" id="exp-folder" hidden title="Write the file straight into the game's folder (Ctrl+S)">Save to game folder</button>
     </div>
   </form>
 </dialog>
@@ -254,6 +256,7 @@
         <dl>
           <dt>.propsprofile</dt><dd>Import adds its props to the scene; Export writes one (the add-on's format)</dd>
           <dt>Game prop set (.jsfb)</dt><dd>Import a <b>PropsSet_*.jsfb</b> to open that match type's props; Export → Game prop set saves it. Props the designer can't show stay in the file</dd>
+          <dt>Ctrl + S</dt><dd>Chrome / Edge: save the open game file straight into the game folder (picked once; the original is kept as .bak). Otherwise opens Export</dd>
         </dl>
       </div>
       <div>
@@ -272,6 +275,7 @@
           <dt>Letters in the panel</dt><dd>Drag X, Y, Z, RX, RY, RZ sideways to scrub the value</dd>
           <dt>G · R</dt><dd>Blender-style move · rotate, click to finish</dd>
           <dt>Ctrl + D</dt><dd>Duplicate next to the original</dd>
+          <dt>M · Shift + M</dt><dd>Mirror a copy of the selection to the other side of the ring: left ↔ right · front ↔ back, as you look at it</dd>
           <dt>Ctrl + G</dt><dd>Save the selection as a reusable set</dd>
           <dt>Delete</dt><dd>Delete</dd>
           <dt>Ctrl + A · Esc</dt><dd>Select all · deselect</dd>

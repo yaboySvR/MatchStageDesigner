@@ -10,10 +10,11 @@ import { emit } from './state.js';
 
 const SAVE_KEY = 'ppg.settings';
 
-// Walk actions in the order the dialog lists them; keys are Blender's defaults.
-// hold: works while the key is down (the rest act once per press).
+// Walk actions in the order the dialog lists them; keys are Blender's defaults
+// (the Props ones are this app's own). hold: works while the key is down (the
+// rest act once per press). left: listed in the dialog's left column.
 export const WALK_GROUPS = [
-  { name: 'Move', actions: [
+  { name: 'Move', left: true, actions: [
     { id: 'forward', label: 'Forward', hold: true, keys: ['KeyW', 'ArrowUp'] },
     { id: 'back', label: 'Backward', hold: true, keys: ['KeyS', 'ArrowDown'] },
     { id: 'left', label: 'Left', hold: true, keys: ['KeyA', 'ArrowLeft'] },
@@ -22,6 +23,12 @@ export const WALK_GROUPS = [
     { id: 'down', label: 'Down', note: 'straight down, gravity off', hold: true, keys: ['KeyQ'] },
     { id: 'viewUp', label: 'Up the view', note: 'gravity off', hold: true, keys: ['KeyR'] },
     { id: 'viewDown', label: 'Down the view', note: 'gravity off', hold: true, keys: ['KeyF'] },
+  ] },
+  { name: 'Props', left: true, actions: [
+    { id: 'place', label: 'Drop the prop', note: 'at the crosshair', keys: ['KeyG'] },
+    { id: 'wheel', label: 'Prop wheel', note: 'hold, move the mouse, let go', hold: true, keys: ['KeyC'] },
+    { id: 'turnLeft', label: 'Turn it left', note: '15°', keys: ['BracketLeft'] },
+    { id: 'turnRight', label: 'Turn it right', note: '15°', keys: ['BracketRight'] },
   ] },
   { name: 'Speed', actions: [
     { id: 'fast', label: 'Faster ×5 (hold)', hold: true, keys: ['Shift'] },
