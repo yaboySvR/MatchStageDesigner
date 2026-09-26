@@ -582,12 +582,14 @@ function showBakePath() {
 
 // ---------------------------------------------------------------- the game folder (gamefolder.js)
 
+// Shown once a folder is picked (next to Save to game folder), to change it.
 async function showFolderLine() {
   const line = $('exp-folder-line');
   const dir = await GF.folder();
+  line.hidden = !dir || $('exp-folder').hidden;
   line.innerHTML = dir
     ? `Game folder: <b>${esc(dir.name)}</b> <button type="button" class="text-btn" id="exp-folder-change">Change folder</button>`
-    : 'The first save asks for the folder that holds the game’s PropsSet files. Chrome won’t open system folders such as Program Files; pick the mod tool’s folder then.';
+    : '';
   $('exp-folder-change')?.addEventListener('click', async () => {
     try {
       await pickAndReport();
