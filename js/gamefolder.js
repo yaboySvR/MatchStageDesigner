@@ -1,25 +1,19 @@
-// Saving game prop sets straight into the folder they are baked from:
-// BakeMe\Environment\PropsSet. Baking the BakeMe folder only picks the file up
-// from there. This needs the File System Access API, so Chrome / Edge only;
-// other browsers keep Download (the export dialog shows the path either way).
+// Saving game prop sets straight into a folder on this computer: the one with
+// the PropsSet_*.jsfb files the game (or the mod tool) uses. This needs the
+// File System Access API, so Chrome / Edge only; other browsers keep Download.
 //
-// The folder is picked once and remembered in this browser (IndexedDB). Any
-// folder on that path will do: from BakeMe or Environment the rest of the way
-// is taken (and made if missing); from a folder holding BakeMe, the existing
-// path inside it. The browser may ask again for permission to edit it (after
-// a restart, say), which needs a click or key press; Save and Ctrl+S are both.
-// The first save over an existing file keeps the original next to it as
-// <name>.bak, and that copy is never overwritten.
+// The folder is picked once and remembered in this browser (IndexedDB). The
+// browser may ask again for permission to edit it (after a restart, say),
+// which needs a click or key press; Save and Ctrl+S are both. The first save
+// over an existing file keeps the original next to it as <name>.bak, and that
+// copy is never overwritten.
 
 const DB = 'ppg-files';
 const STORE = 'handles';
 
-export const PROPSET_PATH = ['BakeMe', 'Environment', 'PropsSet'];
-export const PROPSET_DIR = PROPSET_PATH.join('\\');
-
 export const supported = () => typeof window.showDirectoryPicker === 'function';
 
-let cached; // { dir, label }: undefined until read, null when there is none
+let cached; // the folder handle: undefined until read, null when there is none
 
 function openDb() {
   return new Promise((resolve, reject) => {
@@ -40,12 +34,11 @@ async function dbTx(mode, fn) {
   });
 }
 
-async function remembered() {
+// The remembered folder, or null.
+export async function folder() {
   if (cached === undefined) {
     try {
-      const v = await dbTx('readonly', (s) => s.get('game'));
-      // Saved before labels existed: just the handle.
-      cached = v?.kind === 'directory' ? { dir: v, label: v.name } : v?.dir ? v : null;
+      cached = (await dbTx('readonly', (s) => s.get('game'))) || null;
     } catch {
       cached = null;
     }
@@ -53,42 +46,21 @@ async function remembered() {
   return cached;
 }
 
-// The remembered folder (a directory handle), or null.
-export const folder = async () => (await remembered())?.dir ?? null;
-
-// How to show it, e.g. "BakeMe\Environment\PropsSet", or null.
-export const folderLabel = async () => (await remembered())?.label ?? null;
-
-const same = (a, b) => a.toLowerCase() === b.toLowerCase();
-
-// The PropsSet folder for a picked folder: { dir, label }, or null when the
-// picked folder isn't on the BakeMe\Environment\PropsSet path.
-async function propSetFolder(picked) {
-  const at = PROPSET_PATH.findIndex((name) => same(name, picked.name));
-  if (at >= 0) {
-    let dir = picked;
-    for (const name of PROPSET_PATH.slice(at + 1)) dir = await dir.getDirectoryHandle(name, { create: true });
-    return { dir, label: PROPSET_DIR };
-  }
-  try {
-    let dir = picked;
-    for (const name of PROPSET_PATH) dir = await dir.getDirectoryHandle(name);
-    return { dir, label: `${picked.name}\\${PROPSET_DIR}` };
-  } catch {
-    return null;
-  }
+async function countPropSets(dir) {
+  let n = 0;
+  for await (const [name, h] of dir.entries()) if (h.kind === 'file' && /^PropsSet_.*\.jsfb$/i.test(name)) n++;
+  return n;
 }
 
 // Ask which folder to use (throws AbortError if the picker is closed).
-// Returns how it is shown and whether it is on the bake path.
+// Returns its name and how many PropsSet files are in it.
 export async function pickFolder() {
-  const picked = await window.showDirectoryPicker({ id: 'ppg-game', mode: 'readwrite' });
-  const found = await propSetFolder(picked);
-  cached = found ?? { dir: picked, label: picked.name };
+  const dir = await window.showDirectoryPicker({ id: 'ppg-game', mode: 'readwrite' });
+  cached = dir;
   try {
-    await dbTx('readwrite', (s) => s.put(cached, 'game'));
+    await dbTx('readwrite', (s) => s.put(dir, 'game'));
   } catch { /* remembered for this visit only */ }
-  return { label: cached.label, onPath: !!found };
+  return { name: dir.name, propSets: await countPropSets(dir) };
 }
 
 async function allowed(dir) {
@@ -129,7 +101,7 @@ export async function saveFile(name, bytes) {
     backedUp = true;
   }
   await write(dir, name, bytes);
-  return { folder: (await folderLabel()) ?? dir.name, backedUp };
+  return { folder: dir.name, backedUp };
 }
 
 // The system's Open dialog, starting in the game folder. Resolves to the File

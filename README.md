@@ -200,19 +200,16 @@ The format and how it was worked out are in [`jsfb's/README.md`](jsfb's/README.m
   opened, and the name field suggests the game's match types.
 - **Where it goes**: `BakeMe\Environment\PropsSet`. Put the file in that
   folder (replacing the one with the same name), then bake the BakeMe folder;
-  the game only picks it up from there. The export dialog shows the full path
-  with the file name (with a button to copy the folder path), and the saved
-  message repeats it.
+  the game only picks it up from there. The export dialog says so, with the
+  full path and file name, and so does the message after Download.
 - **Save to game folder** (Chrome / Edge): *Export* → *Save to game folder*,
-  or `Ctrl+S` for a scene opened from a game file. The first time, pick your
-  `BakeMe` folder: the file goes into `Environment\PropsSet` inside it
-  (created if missing). Picking `Environment`, `PropsSet` or a folder holding
-  `BakeMe` works too; any other folder gets a warning. The browser remembers
-  the folder (and may ask again for permission to edit it). The first save
-  over a file keeps the original next to it as `<name>.jsfb.bak`, never
-  overwritten afterwards. With a folder picked, *Import* opens in it too.
-  Chrome won't open system folders such as Program Files. Other browsers keep
-  *Download*. Code: `js/gamefolder.js`.
+  or `Ctrl+S` for a scene opened from a game file. The first time, pick the
+  folder with the `PropsSet_*.jsfb` files; the browser remembers it (and may
+  ask again for permission to edit it). The first save over a file keeps the
+  original next to it as `<name>.jsfb.bak`, never overwritten afterwards.
+  With a folder picked, *Import* opens in it too. Chrome won't open system
+  folders such as Program Files; pick the mod tool's working folder then.
+  Other browsers keep *Download*. Code: `js/gamefolder.js`.
 - **Nothing is lost**: each prop keeps the fields the designer doesn't show
   (hashes, scale, extra lists) and writes them back. Props the catalog doesn't
   know (the ambulance, the casket, the WarGames pedestals...) aren't drawn but
