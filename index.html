@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PropSetDesigner</title>
+  <meta name="description" content="Design arena prop layouts in the browser and export .propsprofile files.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%238b45ff'/%3E%3Ctext x='16' y='21' font-family='Arial' font-weight='700' font-size='12' fill='white' text-anchor='middle'%3EPSD%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+      "@dimforge/rapier3d-compat": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.19.3/rapier.mjs"
+    }
+  }
+  </script>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <header class="brand">
+      <div>
+        <h1>PropSetDesigner</h1>
+      </div>
+      <button class="icon-btn sidebar-close" id="btn-sidebar-close" title="Close panel" aria-label="Close panel">✕</button>
+    </header>
+
+    <section class="panel" id="match-panel">
+      <h2>Match</h2>
+      <div class="match-row">
+        <button type="button" class="icon-btn" id="match-prev" title="Previous match" aria-label="Previous match">◀</button>
+        <select id="match-select" aria-label="Match" title="The match whose prop set you are editing"></select>
+        <button type="button" class="icon-btn" id="match-next" title="Next match" aria-label="Next match">▶</button>
+      </div>
+      <p class="match-status" id="match-status"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Arena</h2>
+      <div class="seg" id="env-seg" role="radiogroup" aria-label="Environment"></div>
+      <div class="toggles">
+        <label class="toggle"><input type="checkbox" id="opt-autosnap" checked><span></span>Auto snapping</label>
+        <label class="toggle"><input type="checkbox" id="opt-stacking"><span></span>Stacking</label>
+        <label class="toggle"><input type="checkbox" id="opt-stage"><span></span>Entrance stage</label>
+        <label class="toggle"><input type="checkbox" id="opt-xray"><span></span>X-ray arena</label>
+      </div>
+    </section>
+
+    <section class="panel grow">
+      <div class="panel-head">
+        <div class="tabs" role="tablist" aria-label="Library">
+          <button type="button" role="tab" id="tab-props" aria-selected="true" aria-controls="prop-grid">Props</button>
+          <button type="button" role="tab" id="tab-sets" aria-selected="false" aria-controls="set-grid">Sets <span class="count" id="sets-count"></span></button>
+        </div>
+        <div class="head-actions" id="props-actions">
+          <button class="text-btn" id="btn-manage" title="Show or hide props in the catalog and wheel">List</button>
+          <!-- Custom props are switched off for now (the dialog and code are still here). -->
+          <button class="text-btn" id="btn-custom" title="Add your own OBJ as a prop" hidden>+ Custom</button>
+        </div>
+        <div class="head-actions" id="sets-actions" hidden>
+          <button class="text-btn" id="btn-sets-export" title="Download all your sets as a file (backup or share)">Export</button>
+          <button class="text-btn" id="btn-sets-import" title="Add sets from an exported file">Import</button>
+        </div>
+      </div>
+      <input type="search" id="prop-search" placeholder="Search props…" autocomplete="off">
+      <div id="state-bar"></div>
+      <div id="prop-grid" role="listbox" aria-label="Props"></div>
+      <div id="set-grid" role="listbox" aria-label="Prop sets" hidden></div>
+    </section>
+
+    <section class="panel">
+      <h2>Profile</h2>
+      <div class="row">
+        <button class="btn primary" id="btn-export" title="Save a .propsprofile, or a game prop set (.jsfb)">Export</button>
+        <button class="btn" id="btn-import" title="Add the props of a .propsprofile, or open a game prop set (PropsSet_*.jsfb)">Import</button>
+      </div>
+      <div class="row between">
+        <span class="muted" id="placed-count">0 props placed</span>
+        <button class="text-btn danger" id="btn-clear">Clear scene</button>
+      </div>
+    </section>
+  </aside>
+
+  <main id="viewport">
+    <div id="canvas-host"></div>
+
+    <div class="view-toolbar">
+      <button class="icon-btn mobile-only" id="btn-sidebar" title="Props panel">☰</button>
+      <button class="chip" id="btn-view-top" title="Top view (T)">Top</button>
+      <button class="chip" id="btn-view-persp" title="Perspective view">3D</button>
+      <button class="chip" id="btn-frame" title="Frame selection (F) / everything (Home)">Frame</button>
+      <button class="chip" id="btn-walk" title="Walk navigation (Shift+`), like Blender's: the mouse looks around, W A S D move. Click keeps the view, Esc goes back">Walk</button>
+      <span class="sep"></span>
+      <div class="tool-seg" role="radiogroup" aria-label="Handles">
+        <button class="chip" role="radio" id="btn-gizmo-move" title="Move handles (W)">✥ Move</button>
+        <button class="chip" role="radio" id="btn-gizmo-rotate" title="Rotate handles (E)">⟳ Rotate</button>
+      </div>
+      <button class="chip" id="btn-space" title="Handle axes: world or the prop's own (local)">World</button>
+      <span class="sep"></span>
+      <button class="chip" id="btn-physics" aria-pressed="false" title="Physics (P): placed props drop from above the cursor and settle where they land">⤓ Physics</button>
+      <span class="sep"></span>
+      <button class="chip" id="btn-undo" title="Undo (Ctrl+Z)">↶</button>
+      <button class="chip" id="btn-redo" title="Redo (Ctrl+Shift+Z)">↷</button>
+      <span class="sep"></span>
+      <button class="chip icon" id="btn-settings" title="Settings: walk keys and mouse speed" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <button class="chip" id="btn-help" title="Controls">?</button>
+    </div>
+
+    <div id="selection-card" class="card" hidden></div>
+
+    <div id="hud" hidden></div>
+    <div id="walk-cross" hidden>
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+        <path d="M12 2v7M12 15v7M2 12h7M15 12h7" stroke="#000" stroke-opacity=".55" stroke-width="4" stroke-linecap="round"/>
+        <path d="M12 2v7M12 15v7M2 12h7M15 12h7" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div id="statusbar">
+      <span id="status-coords">X — Y — Z —</span>
+      <span id="status-env"></span>
+    </div>
+
+    <div id="marquee" hidden></div>
+    <div id="gizmo-readout" class="readout" hidden></div>
+    <div id="wheel" hidden></div>
+    <div id="drop-hint" hidden><div>Drop a <b>.propsprofile</b> or a game <b>.jsfb</b> to import</div></div>
+
+    <div id="loading">
+      <div class="loader-box">
+        <div class="brand-mark big">PSD</div>
+        <div class="bar"><i id="loading-bar"></i></div>
+        <p id="loading-text">Loading arena…</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<dialog id="dlg-export" class="dlg">
+  <form method="dialog">
+    <h3>Export</h3>
+    <div class="seg two" id="exp-format" role="radiogroup" aria-label="File type">
+      <button type="button" role="radio" data-format="profile" title="The Blender add-on's format">Profile <small>.propsprofile</small></button>
+      <button type="button" role="radio" data-format="jsfb" title="The game's own file for one match type (PropsSet_*.jsfb)">Game prop set <small>.jsfb</small></button>
+    </div>
+    <label class="field"><span>File name</span>
+      <div class="suffix-input"><input id="exp-name" value="untitled" spellcheck="false" autocomplete="off"><em id="exp-ext">.propsprofile</em></div>
+    </label>
+    <datalist id="exp-names"></datalist>
+    <div class="bake-path" id="exp-bake" hidden>
+      <div class="bake-head"><b>Where it goes</b></div>
+      <code id="exp-bake-path"></code>
+      <p>Put the file in that folder, replacing the one with the same name, then bake your BakeMe folder. The game only picks it up from there.</p>
+    </div>
+    <label class="toggle"><input type="checkbox" id="exp-selected"><span></span>Selected props only</label>
+    <label class="toggle" title="Imported entries whose prop ID / state this app doesn't know. The Blender add-on drops these."><input type="checkbox" id="exp-unknown" checked><span></span><span id="exp-unknown-label">Keep unrecognized entries</span></label>
+    <label class="field" id="exp-preview-field"><span id="exp-summary">Preview</span>
+      <textarea id="exp-preview" readonly spellcheck="false"></textarea>
+    </label>
+    <div class="exp-jsfb" id="exp-jsfb" hidden></div>
+    <p class="exp-folder muted small" id="exp-folder-line" hidden></p>
+    <div class="dlg-actions">
+      <button class="btn" value="cancel">Close</button>
+      <button class="btn" type="button" id="exp-append" title="Add these props to the end of an existing .propsprofile">Append to file…</button>
+      <button class="btn" type="button" id="exp-copy">Copy</button>
+      <button class="btn primary" type="button" id="exp-download">Download</button>
+      <button class="btn" type="button" id="exp-folder" hidden title="Write the file straight into the game's folder (Ctrl+S)">Save to game folder</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-custom" class="dlg">
+  <form method="dialog" id="custom-form">
+    <h3>Add custom prop</h3>
+    <p class="muted">Your OBJ stays in this browser. Use the same scale and orientation as the built-in models.</p>
+    <label class="field"><span>Model (.obj)</span><input type="file" id="cus-obj" accept=".obj" required></label>
+    <label class="field"><span>Label</span><input id="cus-label" required placeholder="e.g. Steel Chair Gold"></label>
+    <div class="row">
+      <label class="field"><span>Prop ID</span><input id="cus-pid" type="number" min="0" required></label>
+      <label class="field"><span>State</span><select id="cus-state"></select></label>
+    </div>
+    <label class="field"><span>Icon (optional PNG/WebP)</span><input type="file" id="cus-icon" accept="image/*"></label>
+    <p class="form-error" id="cus-error"></p>
+    <div class="dlg-actions">
+      <button class="btn" value="cancel" formnovalidate>Cancel</button>
+      <button class="btn primary" type="submit" id="cus-save">Add prop</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-set" class="dlg">
+  <form method="dialog" id="set-form">
+    <h3>Save as set</h3>
+    <p class="muted">Save these props exactly as they are, as a group you can place again anywhere.</p>
+    <div class="set-preview"><img id="set-thumb" alt=""></div>
+    <label class="field"><span>Name</span><input id="set-name" required maxlength="60" autocomplete="off"></label>
+    <p class="muted small" id="set-summary"></p>
+    <div class="dlg-actions">
+      <button class="btn" value="cancel" formnovalidate>Cancel</button>
+      <button class="btn primary" type="submit">Save set</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-manage" class="dlg">
+  <form method="dialog">
+    <h3>Prop list</h3>
+    <p class="muted">Hidden props stay importable but leave the catalog and wheel.</p>
+    <div id="manage-list"></div>
+    <div class="dlg-actions">
+      <button class="btn primary" value="ok">Done</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-connect" class="dlg">
+  <form method="dialog">
+    <h3>Connect PropsSet folder</h3>
+    <div id="con-step1">
+      <p>Pick the <b>Environment\PropsSet</b> folder inside a BakeMe folder you bake. The site writes its <span class="con-count"></span> match prop sets there, and from then on switching matches opens that match's file in the folder and your edits save into it by themselves.</p>
+      <div class="bake-path">
+        <div class="bake-head"><b>Where the folder can be</b></div>
+        <p>Chrome and Edge won't open anything inside system folders such as Program Files, Windows or AppData, which is where Steam puts the game and often the mod tools. They say the folder "contains system files", whatever it holds.</p>
+        <p>So keep a BakeMe folder of its own inside Desktop, Documents or Downloads (not those folders themselves), for example:</p>
+        <code>Documents\BakeMe_Propsets\Environment\PropsSet</code>
+        <p>Connect that PropsSet folder, then bake BakeMe_Propsets with your mod tool.</p>
+      </div>
+      <p class="muted small">Match files already there are kept once as &lt;name&gt;.jsfb.bak. Nothing is written until you confirm on the next step.</p>
+    </div>
+    <div id="con-step2" hidden>
+      <p>Folder: <b id="con-folder"></b></p>
+      <p id="con-replace"></p>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn primary" type="button" id="con-choose">Choose folder…</button>
+      <button class="btn primary" type="button" id="con-ok" hidden>Replace and connect</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-settings" class="dlg wide">
+  <form method="dialog">
+    <h3>Settings</h3>
+    <h4>Walk navigation</h4>
+    <div class="set-line">
+      <label class="set-range"><span>Mouse sensitivity</span>
+        <input type="range" id="set-look" min="0.2" max="3" step="0.05">
+        <output id="set-look-val" for="set-look"></output>
+      </label>
+      <label class="toggle"><input type="checkbox" id="set-invert"><span></span>Invert mouse (push up to look down)</label>
+    </div>
+    <p class="muted small">Click a key, then press the new one. <kbd>Backspace</kbd> clears it, <kbd>Esc</kbd> cancels. Keys go by their place on the keyboard, so they stay put on any layout.</p>
+    <div id="kb-list" class="kb-list"></div>
+    <p class="kb-note" id="kb-note" aria-live="polite"></p>
+    <div class="dlg-actions">
+      <button class="btn" type="button" id="set-reset" title="Blender's keys and mouse speed">Reset to defaults</button>
+      <button class="btn primary" value="ok">Done</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-help" class="dlg wide">
+  <form method="dialog">
+    <h3>Controls</h3>
+    <div class="help-grid">
+      <div>
+        <h4>Camera</h4>
+        <dl>
+          <dt>Right / middle drag</dt><dd>Orbit</dd>
+          <dt>Shift + drag</dt><dd>Pan</dd>
+          <dt>Wheel</dt><dd>Zoom</dd>
+          <dt>T · F · Home</dt><dd>Top view · frame selection · frame all</dd>
+        </dl>
+        <h4>Walk navigation</h4>
+        <dl id="help-walk"><!-- the keys as set, from settings-ui.js --></dl>
+        <h4>Placing</h4>
+        <dl>
+          <dt>Click a prop tile</dt><dd>Start placing it</dd>
+          <dt>Hold Q</dt><dd>Prop wheel, release to pick</dd>
+          <dt>Click</dt><dd>Place one</dd>
+          <dt>Click + drag</dt><dd>Place a line (stack upward when Stacking is on)</dd>
+          <dt>[ · ]</dt><dd>Rotate the prop before placing it</dd>
+          <dt>Sets tab</dt><dd>Click a saved set to stamp copies of the group, exactly as it was saved; [ ] turn it, M mirror</dd>
+          <dt>Shift while dragging</dt><dd>Lock line to 45°</dd>
+          <dt>Wheel while dragging · Alt + wheel</dt><dd>Line spacing</dd>
+          <dt>Esc</dt><dd>Stop placing</dd>
+        </dl>
+        <h4>Files</h4>
+        <dl>
+          <dt>.propsprofile</dt><dd>Import adds its props to the scene; Export writes one (the add-on's format)</dd>
+          <dt>Game prop set (.jsfb)</dt><dd>Import a <b>PropsSet_*.jsfb</b> to open that match type's props (one named like a match opens in that match); Export → Game prop set saves it. It goes in <b>BakeMe\Environment\PropsSet</b>, then bake. Props the designer can't show stay in the file</dd>
+          <dt>Ctrl + S</dt><dd>In a match: save it now. Otherwise, Chrome / Edge: save the open game file straight into the game folder (picked once; the original is kept as .bak), or open Export</dd>
+        </dl>
+        <h4>Matches</h4>
+        <dl>
+          <dt>Match (top of the panel)</dt><dd>Pick a match to edit its prop set. It starts as the game's vanilla one; your changes save by themselves (in this browser, or in your PropsSet folder once it's connected)</dd>
+          <dt>◀ · ▶</dt><dd>Previous · next match</dd>
+          <dt>Connect PropsSet folder</dt><dd>Chrome / Edge: pick the <b>Environment\PropsSet</b> folder of a BakeMe folder you bake; the match prop sets are written there (files already there are kept once as .bak) and your edits keep saving into it. It can't be inside system folders such as Program Files (where Steam puts the game) or AppData: keep a BakeMe folder of its own in Desktop, Documents or Downloads, e.g. <b>Documents\BakeMe_Propsets\Environment\PropsSet</b>, and bake that</dd>
+          <dt>Free design</dt><dd>The scene as before, not tied to a match; it's kept while you edit matches</dd>
+          <dt>Props the site doesn't show</dt><dd>Some matches have them (the ambulance, the casket, the WarGames pieces…). They stay exactly as they are, whatever you do</dd>
+        </dl>
+      </div>
+      <div>
+        <h4>Editing</h4>
+        <dl>
+          <dt>Click · Shift + click</dt><dd>Select · add to selection</dd>
+          <dt>Drag on empty space</dt><dd>Box select</dd>
+          <dt>W · E</dt><dd>Move handles · rotate handles on the selection</dd>
+          <dt>Move handles</dt><dd>Arrows move along X (red), Y (green), Z (blue, up); squares move on a plane. Ctrl snaps to a 10 grid</dd>
+          <dt>Rotate handles</dt><dd>Rings tilt / turn around X, Y, Z in 15° steps (Shift for free). Drag inside the rings to tumble the prop freely</dd>
+          <dt>Esc · right-click</dt><dd>Cancel a handle drag</dd>
+          <dt>World · Local</dt><dd>Toolbar toggle: handle axes follow the world or the prop</dd>
+          <dt>Drag a prop</dt><dd>Move it on the ground (Shift locks to one axis)</dd>
+          <dt>Arrow keys</dt><dd>Nudge 5 (Shift 25, Alt 1), relative to the camera</dd>
+          <dt>[ · ]</dt><dd>Rotate 15° left · right (Shift 90°, Alt 1°)</dd>
+          <dt>Letters in the panel</dt><dd>Drag X, Y, Z, RX, RY, RZ sideways to scrub the value</dd>
+          <dt>G · R</dt><dd>Blender-style move · rotate, click to finish</dd>
+          <dt>Ctrl + D</dt><dd>Duplicate next to the original</dd>
+          <dt>M · Shift + M</dt><dd>Mirror a copy of the selection to the other side of the ring: left ↔ right · front ↔ back, as you look at it</dd>
+          <dt>Ctrl + G</dt><dd>Save the selection as a reusable set</dd>
+          <dt>Delete</dt><dd>Delete</dd>
+          <dt>Ctrl + A · Esc</dt><dd>Select all · deselect</dd>
+          <dt>Ctrl + Z · Ctrl + Shift + Z</dt><dd>Undo · redo</dd>
+        </dl>
+        <h4>Physics</h4>
+        <dl>
+          <dt>P · toolbar Physics</dt><dd>Placing drops props from above the cursor; they fall and settle on whatever is below</dd>
+          <dt>↑ · ↓ while placing</dt><dd>Drop height (Shift ×5, Alt fine)</dd>
+          <dt>Shift + click</dt><dd>Drop with a random tumble</dd>
+          <dt>End</dt><dd>Let the selection fall from where it is</dd>
+          <dt>Ctrl + Z while falling</dt><dd>Cancel the drop</dd>
+        </dl>
+        <h4>Snapping</h4>
+        <p class="muted">With Auto snapping on, props sit on the ring (Z 106), the floor (Z 0), the entrance stage, or the cell / ambulance roof. Stacking lets props sit on top of other props, one level high.</p>
+      </div>
+    </div>
+    <div class="dlg-actions"><button class="btn primary" value="ok">Got it</button></div>
+  </form>
+</dialog>
+
+<div id="toasts" aria-live="polite"></div>
+<input type="file" id="file-import" accept=".propsprofile,.txt,.jsfb" hidden>
+<input type="file" id="file-append" accept=".propsprofile,.txt" hidden>
+<input type="file" id="file-sets" accept=".json,application/json" hidden>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

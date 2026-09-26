@@ -1,0 +1,607 @@
+{
+ "state_definitions": {
+  "Default": 15010,
+  "Set Up": 15001,
+  "Static": 15000,
+  "Corner": 15002,
+  "Set Up CHAIR": 15009
+ },
+ "props": [
+  {
+   "key": "CHAIR",
+   "label": [
+    "Chair",
+    "Chair_Unfolded",
+    "Chair_Folded"
+   ],
+   "prop_id": 4,
+   "states": {
+    "Set Up CHAIR": "chair.bin",
+    "Default": "ground_chair.bin"
+   },
+   "icon": "chair_folded.webp",
+   "alt_icon": {
+    "state": "Set Up CHAIR",
+    "icon": "chair_unfolded.webp"
+   }
+  },
+  {
+   "key": "TABLE",
+   "label": [
+    "Table",
+    "Table_Setup",
+    "Table_Ground"
+   ],
+   "prop_id": 5,
+   "states": {
+    "Set Up": "table.bin",
+    "Default": "ground_table.bin"
+   },
+   "icon": "table_ground.webp",
+   "alt_icon": {
+    "state": "Set Up",
+    "icon": "table_setup.webp"
+   }
+  },
+  {
+   "key": "LADDER",
+   "label": [
+    "Ladder",
+    "Ladder_Setup",
+    "Ladder_Ground"
+   ],
+   "prop_id": 11,
+   "states": {
+    "Set Up": "ladder.bin",
+    "Default": "ground_ladder.bin"
+   },
+   "icon": "ladder_ground.webp",
+   "alt_icon": {
+    "state": "Set Up",
+    "icon": "ladder_setup.webp"
+   }
+  },
+  {
+   "key": "STEEL",
+   "label": [
+    "Steel Steps (upper stair)",
+    "SteelStepsUpper"
+   ],
+   "prop_id": 33,
+   "states": {
+    "Default": "upper_stair.bin"
+   },
+   "icon": "steelstepsupper.webp"
+  },
+  {
+   "key": "KENDO",
+   "label": [
+    "Kendo Stick",
+    "KendoStick"
+   ],
+   "prop_id": 4112,
+   "states": {
+    "Default": "kendo_stick.bin"
+   },
+   "icon": "kendostick.webp"
+  },
+  {
+   "key": "TRASH",
+   "label": [
+    "Trash Can",
+    "TrashCan"
+   ],
+   "prop_id": 167,
+   "states": {
+    "Default": "trash_can.bin"
+   },
+   "icon": "trashcan.webp"
+  },
+  {
+   "key": "BW",
+   "label": [
+    "Barbed Wired Bat",
+    "BW_Bat"
+   ],
+   "prop_id": 4118,
+   "states": {
+    "Default": "bw_bat.bin"
+   },
+   "icon": "bw_bat.webp"
+  },
+  {
+   "key": "GLASS",
+   "label": [
+    "Glass",
+    "Glass"
+   ],
+   "prop_id": 9385,
+   "states": {
+    "Default": "glass.bin"
+   },
+   "icon": "glass.webp"
+  },
+  {
+   "key": "LIGHTTUBE",
+   "label": [
+    "Light Tube",
+    "LightTube"
+   ],
+   "prop_id": 4116,
+   "states": {
+    "Default": "lighttube.bin"
+   },
+   "icon": "lighttube.webp"
+  },
+  {
+   "key": "STOP",
+   "label": [
+    "Stop Sign",
+    "StopSign"
+   ],
+   "prop_id": 4322,
+   "states": {
+    "Default": "stop_sign.bin"
+   },
+   "icon": "stopsign.webp"
+  },
+  {
+   "key": "SAFETY",
+   "label": [
+    "Safety Cone",
+    "SafetyCone"
+   ],
+   "prop_id": 46,
+   "states": {
+    "Default": "safety_cone.bin"
+   },
+   "icon": "safetycone.webp"
+  },
+  {
+   "key": "SHELF",
+   "label": [
+    "Shelf",
+    "Shelf"
+   ],
+   "prop_id": 9370,
+   "states": {
+    "Static": "shelve.bin"
+   },
+   "icon": "shelf.webp"
+  },
+  {
+   "key": "SLEDGEHAMMER",
+   "label": [
+    "Sledgehammer",
+    "Sledgehammer"
+   ],
+   "prop_id": 102,
+   "states": {
+    "Default": "sledgehammer.bin"
+   },
+   "icon": "sledgehammer.webp"
+  },
+  {
+   "key": "BAT",
+   "label": [
+    "Bat",
+    "Bat"
+   ],
+   "prop_id": 21,
+   "states": {
+    "Default": "bat.bin"
+   },
+   "icon": "bat.webp"
+  },
+  {
+   "key": "SHOVEL",
+   "label": [
+    "Shovel",
+    "Shovel"
+   ],
+   "prop_id": 4113,
+   "states": {
+    "Default": "shovel.bin"
+   },
+   "icon": "shovel.webp"
+  },
+  {
+   "key": "HOCKEY_STICK",
+   "label": [
+    "Hockey Stick",
+    "Hockeystick"
+   ],
+   "prop_id": 4114,
+   "states": {
+    "Default": "hockey_stick.bin"
+   },
+   "icon": "hockeystick.webp"
+  },
+  {
+   "key": "CRUTCH",
+   "label": [
+    "Crutch",
+    "Crutch"
+   ],
+   "prop_id": 4115,
+   "states": {
+    "Default": "crutch.bin"
+   },
+   "icon": "crutch.webp"
+  },
+  {
+   "key": "SHOP_CART",
+   "label": [
+    "Shopping Cart",
+    "Shopping_Cart"
+   ],
+   "prop_id": 9339,
+   "states": {
+    "Default": "shopping_cart.bin"
+   },
+   "icon": "shopping_cart.webp"
+  },
+  {
+   "key": "CINDERBLOCK",
+   "label": [
+    "Cinderblock",
+    "Cinderblock"
+   ],
+   "prop_id": 4330,
+   "states": {
+    "Default": "cinderblock.bin"
+   },
+   "icon": "cinderblock.webp"
+  },
+  {
+   "key": "TB_BAG",
+   "label": [
+    "Thumbtacks bag",
+    "Thumbtacks_bag"
+   ],
+   "prop_id": 9431,
+   "states": {
+    "Default": "thumbtacks_bag.bin"
+   },
+   "icon": "thumbtacks_bag.webp"
+  },
+  {
+   "key": "BELT_PEDESTOL",
+   "label": [
+    "Belt Pedestol",
+    "Belt_pedestol"
+   ],
+   "prop_id": 9438,
+   "states": {
+    "Default": "belt_pedestol.bin"
+   },
+   "icon": "belt_pedestol.webp"
+  },
+  {
+   "key": "SILLY_HAMMER",
+   "label": [
+    "Silly Hammer",
+    "Silly_hammer"
+   ],
+   "prop_id": 9429,
+   "states": {
+    "Default": "silly_hammer.bin"
+   },
+   "icon": "silly_hammer.webp"
+  },
+  {
+   "key": "ITEM_BOX",
+   "label": [
+    "Item box (BREAKS GAME)",
+    "Item_Box"
+   ],
+   "prop_id": 9428,
+   "states": {
+    "Default": "item_box.bin"
+   },
+   "unlisted": true,
+   "icon": "item_box.webp"
+  },
+  {
+   "key": "STUN_GRENADE",
+   "label": [
+    "Stun Grenade (BREAKS GAME)",
+    "Stun_grenade"
+   ],
+   "prop_id": 9430,
+   "states": {
+    "Default": "stun_grenade.bin"
+   },
+   "unlisted": true,
+   "icon": "stun_grenade.webp"
+  },
+  {
+   "key": "EQUIP_BOX",
+   "label": [
+    "Equipment box",
+    "Equip_box"
+   ],
+   "prop_id": 162,
+   "states": {
+    "Default": "equip_box.bin"
+   },
+   "icon": "equipment_box.webp"
+  },
+  {
+   "key": "CARDBOARD_BOX",
+   "label": [
+    "Cardboard box",
+    "box"
+   ],
+   "prop_id": 114,
+   "states": {
+    "Default": "box.bin"
+   },
+   "icon": "cardboard_box.webp"
+  },
+  {
+   "key": "TOMBSTONE",
+   "label": [
+    "Tombstone",
+    "Tombstone"
+   ],
+   "prop_id": 9000,
+   "states": {
+    "Default": "tombstone.bin"
+   },
+   "icon": "tombstone.webp"
+  },
+  {
+   "key": "KICKABLE_ROCK",
+   "label": [
+    "Rock",
+    "Rock"
+   ],
+   "prop_id": 9500,
+   "states": {
+    "Default": "rock.bin"
+   },
+   "icon": "rock.webp"
+  },
+  {
+   "key": "TRASH_CAN_LID",
+   "label": [
+    "Trash Can Lid",
+    "Lid"
+   ],
+   "prop_id": 4326,
+   "states": {
+    "Default": "lid.bin"
+   },
+   "icon": "trashcan_lid.webp"
+  },
+  {
+   "key": "BOTTLE",
+   "label": [
+    "Bottle",
+    "Bottle"
+   ],
+   "prop_id": 58,
+   "states": {
+    "Default": "bottle.bin"
+   },
+   "icon": "bottle.webp"
+  },
+  {
+   "key": "HHH_HAMMER",
+   "label": [
+    "HHH Hammer",
+    "HHH_Hammer"
+   ],
+   "prop_id": 2989,
+   "states": {
+    "Default": "hhh_hammer.bin"
+   },
+   "icon": "hhh_hammer.webp"
+  },
+  {
+   "key": "JANICE",
+   "label": [
+    "Janice",
+    "Janice"
+   ],
+   "prop_id": 2996,
+   "states": {
+    "Default": "janice.bin"
+   },
+   "icon": "janice.webp"
+  },
+  {
+   "key": "BAKING_TRAY",
+   "label": [
+    "Baking Tray",
+    "Baking_Tray"
+   ],
+   "prop_id": 4414,
+   "states": {
+    "Default": "baking_tray.bin"
+   },
+   "icon": "baking_tray.webp"
+  },
+  {
+   "key": "BARREL",
+   "label": [
+    "Barrel",
+    "Barrel"
+   ],
+   "prop_id": 4600,
+   "states": {
+    "Default": "barrel.bin"
+   },
+   "icon": "barrel.webp"
+  },
+  {
+   "key": "GUITAR",
+   "label": [
+    "Guitar",
+    "Guitar"
+   ],
+   "prop_id": 6333,
+   "states": {
+    "Default": "guitar.bin"
+   },
+   "icon": "guitar.webp"
+  },
+  {
+   "key": "CASKET",
+   "label": [
+    "Casket",
+    "Casket"
+   ],
+   "prop_id": 9353,
+   "states": {
+    "Default": "casket.bin"
+   },
+   "icon": "casket.webp"
+  },
+  {
+   "key": "LARGE_CRATE",
+   "label": [
+    "Large Crate",
+    "Large_Crate"
+   ],
+   "prop_id": 9458,
+   "states": {
+    "Default": "large_crate.bin"
+   },
+   "icon": "large_crate.webp"
+  },
+  {
+   "key": "MEDIUM_CRATE",
+   "label": [
+    "Medium Crate",
+    "Medium_Crate"
+   ],
+   "prop_id": 9459,
+   "states": {
+    "Default": "medium_crate.bin"
+   },
+   "icon": "medium_crate.webp"
+  },
+  {
+   "key": "SMALL_CRATE",
+   "label": [
+    "Small Crate",
+    "Small_Crate"
+   ],
+   "prop_id": 9460,
+   "states": {
+    "Default": "small_crate.bin"
+   },
+   "icon": "small_crate.webp"
+  },
+  {
+   "key": "TWO_BY_FOUR",
+   "label": [
+    "Two By Four",
+    "Two_By_Four"
+   ],
+   "prop_id": 151,
+   "states": {
+    "Default": "two_by_four.bin"
+   },
+   "icon": "two_by_four.webp"
+  },
+  {
+   "key": "APPLE",
+   "label": [
+    "Apple",
+    "Apple"
+   ],
+   "prop_id": 4121,
+   "states": {
+    "Default": "apple.bin"
+   },
+   "icon": "apple.webp"
+  },
+  {
+   "key": "FOOTBALL",
+   "label": [
+    "Football",
+    "Football"
+   ],
+   "prop_id": 4123,
+   "states": {
+    "Default": "football.bin"
+   },
+   "icon": "football.webp"
+  },
+  {
+   "key": "MECHA_SWORD",
+   "label": [
+    "Mecha Sword",
+    "Mecha_Sword"
+   ],
+   "prop_id": 4129,
+   "states": {
+    "Default": "mecha_sword.bin"
+   },
+   "icon": "mecha_sword.webp"
+  },
+  {
+   "key": "LARGE_DOOR",
+   "label": [
+    "Large Door",
+    "Large_Door"
+   ],
+   "prop_id": 4412,
+   "states": {
+    "Default": "large_door.bin"
+   },
+   "icon": "large_door.webp"
+  },
+  {
+   "key": "CHAINSAW",
+   "label": [
+    "Chainsaw",
+    "Chainsaw"
+   ],
+   "prop_id": 6072,
+   "states": {
+    "Default": "chainsaw.bin"
+   },
+   "icon": "chainsaw.webp"
+  },
+  {
+   "key": "BLUDGEON_HAMMER",
+   "label": [
+    "Bludgeon Bro Hammer",
+    "Bludgeon_Bro_Hammer"
+   ],
+   "prop_id": 6346,
+   "states": {
+    "Default": "bludgeon_hammer.bin"
+   },
+   "icon": "bludgeon_hammer.webp"
+  },
+  {
+   "key": "BEER_CAN",
+   "label": [
+    "Beer Can",
+    "Beer_Can"
+   ],
+   "prop_id": 9464,
+   "states": {
+    "Default": "beer_can.bin"
+   },
+   "unlisted": true,
+   "icon": "beer_can.webp"
+  }
+ ],
+ "env_models": {
+  "ringmat": "env_ringmat.bin",
+  "barricade": "env_barricade.bin",
+  "floor": "env_floor.bin",
+  "ramp": "env_ramp.bin",
+  "stage": "env_stage.bin",
+  "ec": "env_ec.bin",
+  "hiac": "env_hiac.bin",
+  "wg": "env_wg.bin",
+  "amb": "env_amb.bin"
+ }
+}
