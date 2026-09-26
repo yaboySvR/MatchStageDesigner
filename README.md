@@ -209,11 +209,15 @@ The *Match* panel at the top of the sidebar edits them one at a time
   permission again (switching matches, *Reconnect* or Ctrl+S); until then
   edits wait in this browser and go in on reconnecting. Without permission a
   match you never edited here won't open (it would show the vanilla one in
-  place of your file). The folder can't be under Program Files, Windows or
-  AppData: Chrome and Edge refuse those whatever they hold (their message
-  says it "contains system files"), so a mod tool kept inside the Steam game
-  folder can't be connected; matches then stay in this browser, and Export
-  → *Download* gives the file to put in PropsSet.
+  place of your file).
+- **Where the folder can be**: not inside system folders such as Program
+  Files, Windows or AppData. Chrome and Edge refuse those whatever they hold
+  (their message says the folder "contains system files"), and Steam puts the
+  game, and often the mod tools, in Program Files. So keep a BakeMe folder of
+  its own inside Desktop, Documents or Downloads (not those folders
+  themselves), e.g. `Documents\BakeMe_Propsets\Environment\PropsSet`, connect
+  that PropsSet folder and bake `BakeMe_Propsets` with the mod tool. The
+  connect dialog explains this before the folder is picked.
 - **Props the site doesn't show** (the ambulance, the casket, the dumpster,
   the WarGames pieces…) stay exactly as they are, whatever you do: Clear scene
   in a match only removes the site's props. The panel says how many a match

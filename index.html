@@ -224,7 +224,14 @@
   <form method="dialog">
     <h3>Connect PropsSet folder</h3>
     <div id="con-step1">
-      <p>Pick your <b>BakeMe\Environment\PropsSet</b> folder. The site writes its <span class="con-count"></span> match prop sets there, and from then on switching matches opens that match's file in the folder and your edits save into it by themselves.</p>
+      <p>Pick the <b>Environment\PropsSet</b> folder inside a BakeMe folder you bake. The site writes its <span class="con-count"></span> match prop sets there, and from then on switching matches opens that match's file in the folder and your edits save into it by themselves.</p>
+      <div class="bake-path">
+        <div class="bake-head"><b>Where the folder can be</b></div>
+        <p>Chrome and Edge won't open anything inside system folders such as Program Files, Windows or AppData, which is where Steam puts the game and often the mod tools. They say the folder "contains system files", whatever it holds.</p>
+        <p>So keep a BakeMe folder of its own inside Desktop, Documents or Downloads (not those folders themselves), for example:</p>
+        <code>Documents\BakeMe_Propsets\Environment\PropsSet</code>
+        <p>Connect that PropsSet folder, then bake BakeMe_Propsets with your mod tool.</p>
+      </div>
       <p class="muted small">Match files already there are kept once as &lt;name&gt;.jsfb.bak. Nothing is written until you confirm on the next step.</p>
     </div>
     <div id="con-step2" hidden>
@@ -296,7 +303,7 @@
         <dl>
           <dt>Match (top of the panel)</dt><dd>Pick a match to edit its prop set. It starts as the game's vanilla one; your changes save by themselves (in this browser, or in your PropsSet folder once it's connected)</dd>
           <dt>◀ · ▶</dt><dd>Previous · next match</dd>
-          <dt>Connect PropsSet folder</dt><dd>Chrome / Edge: pick your <b>BakeMe\Environment\PropsSet</b> folder; the match prop sets are written there (files already there are kept once as .bak) and your edits keep saving into it</dd>
+          <dt>Connect PropsSet folder</dt><dd>Chrome / Edge: pick the <b>Environment\PropsSet</b> folder of a BakeMe folder you bake; the match prop sets are written there (files already there are kept once as .bak) and your edits keep saving into it. It can't be inside system folders such as Program Files (where Steam puts the game) or AppData: keep a BakeMe folder of its own in Desktop, Documents or Downloads, e.g. <b>Documents\BakeMe_Propsets\Environment\PropsSet</b>, and bake that</dd>
           <dt>Free design</dt><dd>The scene as before, not tied to a match; it's kept while you edit matches</dd>
           <dt>Props the site doesn't show</dt><dd>Some matches have them (the ambulance, the casket, the WarGames pieces…). They stay exactly as they are, whatever you do</dd>
         </dl>
