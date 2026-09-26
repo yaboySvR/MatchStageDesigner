@@ -464,6 +464,14 @@ textarea { height: 170px; resize: vertical; font: 11.5px/1.5 ui-monospace, Conso
 .exp-jsfb p:last-child { margin-bottom: 0; }
 .exp-jsfb .ok { color: #86e486; }
 .exp-folder { margin: 10px 0 0 !important; }
+.bake-path {
+  margin-bottom: 12px; padding: 10px 12px; border-radius: 8px;
+  border: 1px solid rgba(180, 107, 255, .45); background: var(--accent-soft); font-size: 12.5px;
+}
+.bake-path .bake-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.bake-path .bake-head .text-btn { font-size: 12px; padding: 2px 4px; }
+.bake-path code { display: block; font: 600 12.5px/1.45 ui-monospace, Consolas, monospace; color: #fff; overflow-wrap: anywhere; }
+.bake-path p { margin: 6px 0 0 !important; color: var(--muted); }
 .exp-folder .text-btn { padding: 2px 4px; font-size: 12px; }
 .dlg-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 .form-error { color: var(--danger); min-height: 1em; margin: 0; }

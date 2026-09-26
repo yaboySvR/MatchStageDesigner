@@ -565,21 +565,23 @@ function refreshPropSetPreview() {
     ${extra ? `<p class="muted">Includes ${extra}.</p>` : ''}
     <p class="${same ? 'ok' : 'muted'}">${same
       ? `✓ Unchanged: identical to the ${esc(S.jsfb.name)} you opened.`
-      : S.jsfb ? `Edits to ${esc(S.jsfb.name)}. Everything else in the file is kept.` : 'A new prop set, written the way the intermediary program writes them.'}</p>
-    <p class="muted">${GF.supported()
-      ? '<b>Save to game folder</b> writes it over the game’s file for that match type and keeps the original as .bak; or Download it and put it in place yourself.'
-      : 'Put it in place of the game’s file for that match type, and keep a copy of the original.'}</p>`;
+      : S.jsfb ? `Edits to ${esc(S.jsfb.name)}. Everything else in the file is kept.` : 'A new prop set, written the way the intermediary program writes them.'}</p>`;
   return bytes;
+}
+
+// Where a game prop set has to go for baking to pick it up.
+function showBakePath() {
+  $('exp-bake-path').textContent = `${GF.PROPSET_DIR}\\${exportFileName()}`;
 }
 
 // ---------------------------------------------------------------- the game folder (gamefolder.js)
 
 async function showFolderLine() {
   const line = $('exp-folder-line');
-  const dir = await GF.folder();
-  line.innerHTML = dir
-    ? `Game folder: <b>${esc(dir.name)}</b> <button type="button" class="text-btn" id="exp-folder-change">Change folder</button>`
-    : 'The first save asks for the folder that holds the game’s PropsSet files. Chrome won’t open system folders such as Program Files; pick the mod tool’s folder then.';
+  const label = await GF.folderLabel();
+  line.innerHTML = label
+    ? `Save to game folder writes into <b>${esc(label)}</b> <button type="button" class="text-btn" id="exp-folder-change">Change folder</button>`
+    : '<b>Save to game folder</b> asks for a folder the first time: pick your <b>BakeMe</b> folder and the file goes into Environment\\PropsSet inside it (made if missing). Chrome can’t open system folders such as Program Files.';
   $('exp-folder-change')?.addEventListener('click', async () => {
     try {
       await pickAndReport();
@@ -591,9 +593,11 @@ async function showFolderLine() {
 }
 
 async function pickAndReport() {
-  const { name, propSets } = await GF.pickFolder();
-  if (!propSets) toast(`No PropsSet files in ${name}. If that's the wrong folder, use Change folder.`, { ms: 6000 });
-  return name;
+  const { label, onPath } = await GF.pickFolder();
+  if (!onPath) {
+    toast(`${label} isn't on the ${GF.PROPSET_DIR} path, so baking won't pick files up from it. Use Change folder and pick your BakeMe folder.`, { error: true, ms: 9000 });
+  }
+  return label;
 }
 
 // Save bytes as `name` in the game folder, asking for the folder first if
@@ -602,7 +606,7 @@ async function saveToFolder(name, bytes) {
   try {
     if (!(await GF.folder())) await pickAndReport();
     const { folder, backedUp } = await GF.saveFile(name, bytes);
-    toast(`Saved ${name} into ${folder}${backedUp ? ` (the original is kept as ${name}.bak)` : ''}`, { ms: 5000 });
+    toast(`Saved ${name} into ${folder}${backedUp ? ` (the one that was there is kept as ${name}.bak)` : ''}. Bake your BakeMe folder to use it.`, { ms: 7000 });
     return true;
   } catch (e) {
     if (e.name !== 'AbortError') toast(`Couldn’t save into the game folder: ${e.message}`, { error: true });
@@ -650,6 +654,8 @@ function setExportFormat(format) {
   $('exp-ext').textContent = extOf(format);
   $('exp-preview-field').hidden = jsfb;
   $('exp-jsfb').hidden = !jsfb;
+  $('exp-bake').hidden = !jsfb;
+  if (jsfb) showBakePath();
   $('exp-copy').hidden = jsfb;
   $('exp-append').hidden = jsfb;
   const toFolder = jsfb && GF.supported();
@@ -760,8 +766,17 @@ function bindProfile() {
     if (data == null) return;
     const name = exportFileName();
     download(name, data);
-    if (expFormat === 'jsfb') toast(`Saved ${name}`);
+    if (expFormat === 'jsfb') toast(`Saved ${name}. Put it in ${GF.PROPSET_DIR}, then bake.`, { ms: 8000 });
     dlg.close();
+  });
+  $('exp-name').addEventListener('input', () => { if (expFormat === 'jsfb') showBakePath(); });
+  $('exp-copy-path').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(GF.PROPSET_DIR);
+      toast(`Copied ${GF.PROPSET_DIR}`);
+    } catch {
+      toast(`Couldn’t copy; the folder is ${GF.PROPSET_DIR}`, { error: true });
+    }
   });
   $('exp-folder').addEventListener('click', async () => {
     const bytes = refreshExportPreview();

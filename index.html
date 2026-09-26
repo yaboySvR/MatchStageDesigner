@@ -144,6 +144,11 @@
       <div class="suffix-input"><input id="exp-name" value="untitled" spellcheck="false" autocomplete="off"><em id="exp-ext">.propsprofile</em></div>
     </label>
     <datalist id="exp-names"></datalist>
+    <div class="bake-path" id="exp-bake" hidden>
+      <div class="bake-head"><b>Where it goes</b><button type="button" class="text-btn" id="exp-copy-path">Copy folder path</button></div>
+      <code id="exp-bake-path"></code>
+      <p>Put the file in that folder, replacing the one with the same name, then bake your BakeMe folder. The game only picks it up from there.</p>
+    </div>
     <label class="toggle"><input type="checkbox" id="exp-selected"><span></span>Selected props only</label>
     <label class="toggle" title="Imported entries whose prop ID / state this app doesn't know. The Blender add-on drops these."><input type="checkbox" id="exp-unknown" checked><span></span><span id="exp-unknown-label">Keep unrecognized entries</span></label>
     <label class="field" id="exp-preview-field"><span id="exp-summary">Preview</span>
@@ -255,8 +260,8 @@
         <h4>Files</h4>
         <dl>
           <dt>.propsprofile</dt><dd>Import adds its props to the scene; Export writes one (the add-on's format)</dd>
-          <dt>Game prop set (.jsfb)</dt><dd>Import a <b>PropsSet_*.jsfb</b> to open that match type's props; Export → Game prop set saves it. Props the designer can't show stay in the file</dd>
-          <dt>Ctrl + S</dt><dd>Chrome / Edge: save the open game file straight into the game folder (picked once; the original is kept as .bak). Otherwise opens Export</dd>
+          <dt>Game prop set (.jsfb)</dt><dd>Import a <b>PropsSet_*.jsfb</b> to open that match type's props; Export → Game prop set saves it. It goes in <b>BakeMe\Environment\PropsSet</b>, then bake. Props the designer can't show stay in the file</dd>
+          <dt>Ctrl + S</dt><dd>Chrome / Edge: save the open game file straight into BakeMe\Environment\PropsSet (the folder is picked once; the file that was there is kept as .bak). Otherwise opens Export</dd>
         </dl>
       </div>
       <div>
