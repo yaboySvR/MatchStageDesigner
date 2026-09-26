@@ -1,6 +1,6 @@
-# Prop Profile Generator: web edition
+# PropSetDesigner
 
-Browser version of the Blender add-on. Place props in the arena and export a
+Browser version of the Prop Profile Generator Blender add-on. Place props in the arena and export a
 `.propsprofile`. The file format and coordinates match the add-on's export exactly.
 It can also open and save the game's own prop set files (`PropsSet_*.jsfb`)
 directly; see [Game prop sets](#game-prop-sets-jsfb).
