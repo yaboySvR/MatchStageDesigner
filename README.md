@@ -187,6 +187,39 @@ anywhere.
   in this browser; *Export* / *Import* move them between browsers or share
   them as a `prop-sets.json` file.
 
+## Matches
+
+Each match type has its own prop set in the game (`PropsSet_<Mode>.jsfb`).
+The *Match* panel at the top of the sidebar edits them one at a time
+(`js/matches.js`, `js/matches-ui.js`).
+
+- **Pick a match** (or step with ◀ ▶): it opens with the game's vanilla
+  props (`data/propsets/`, 17 match types) and the arena follows the match.
+  *Free design* is the scene as before, not tied to a match; it's kept while
+  you edit matches.
+- **Saving**: a match saves by itself a moment after each change (Ctrl+S
+  saves at once). Without a connected folder the changes stay in this browser
+  (a • marks edited matches); Export works as usual.
+- **Connect PropsSet folder** (Chrome / Edge): pick your
+  `BakeMe\Environment\PropsSet` folder. After you confirm, the site writes its
+  17 match prop sets there (the ones you edited here as edited, the rest
+  vanilla); match files already there are kept once as `<name>.jsfb.bak`.
+  From then on, switching matches opens that match's file in the folder and
+  your edits save into it. After a browser restart the browser asks for
+  permission again (switching matches, *Reconnect* or Ctrl+S); until then
+  edits wait in this browser and go in on reconnecting. Without permission a
+  match you never edited here won't open (it would show the vanilla one in
+  place of your file).
+- **Props the site doesn't show** (the ambulance, the casket, the dumpster,
+  the WarGames pieces…) stay exactly as they are, whatever you do: Clear scene
+  in a match only removes the site's props. The panel says how many a match
+  has.
+- **Importing** a game file named like a match (e.g. `PropsSet_HIAC.jsfb`)
+  opens it as that match's new version (Ctrl+Z goes back); other game files
+  open in free design.
+- King of Hell and Lights Out have no vanilla file here, so they aren't in
+  the list (their files can still be imported and exported in free design).
+
 ## Game prop sets (.jsfb)
 
 The game keeps one prop set per match type, `PropsSet_<Mode>.jsfb`. The

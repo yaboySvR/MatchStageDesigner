@@ -22,14 +22,36 @@ import { decode, encode } from './jsfb.js';
 const NEW_PROP_HASH = 0x49016aee; // the intermediary puts this on every prop
 const NEW_FILE_UNK1 = 1;          // and this on the file
 
-// The game's match types, for naming a saved file.
-export const MATCH_FILES = [
-  'PropsSet_Ambulance', 'PropsSet_BloodlineRules', 'PropsSet_EliminationChamber', 'PropsSet_ExtremeRules',
-  'PropsSet_FallsCountAnywhere', 'PropsSet_Gameplay_Casket', 'PropsSet_Gameplay_Dumpster',
-  'PropsSet_Gameplay_LadderMatch_0', 'PropsSet_Gameplay_TableMatch_0', 'PropsSet_Gameplay_TLCMatch_0',
-  'PropsSet_HIAC', 'PropsSet_IQuit', 'PropsSet_Inferno', 'PropsSet_KingOfHell', 'PropsSet_LastManStanding',
-  'PropsSet_Lights_Out', 'PropsSet_SteelCage', 'PropsSet_Underground', 'PropsSet_Wargames',
+// The game's match types with a prop set, by the names people know them by
+// (matches.js). data/propsets/ has each one's vanilla file.
+export const MATCHES = [
+  { file: 'PropsSet_Ambulance', name: 'Ambulance' },
+  { file: 'PropsSet_BloodlineRules', name: 'Bloodline Rules' },
+  { file: 'PropsSet_Gameplay_Casket', name: 'Casket' },
+  { file: 'PropsSet_Gameplay_Dumpster', name: 'Dumpster' },
+  { file: 'PropsSet_EliminationChamber', name: 'Elimination Chamber' },
+  { file: 'PropsSet_ExtremeRules', name: 'Extreme Rules' },
+  { file: 'PropsSet_FallsCountAnywhere', name: 'Falls Count Anywhere' },
+  { file: 'PropsSet_HIAC', name: 'Hell in a Cell' },
+  { file: 'PropsSet_IQuit', name: 'I Quit' },
+  { file: 'PropsSet_Inferno', name: 'Inferno' },
+  { file: 'PropsSet_Gameplay_LadderMatch_0', name: 'Ladder' },
+  { file: 'PropsSet_LastManStanding', name: 'Last Man Standing' },
+  { file: 'PropsSet_SteelCage', name: 'Steel Cage' },
+  { file: 'PropsSet_Gameplay_TableMatch_0', name: 'Tables' },
+  { file: 'PropsSet_Gameplay_TLCMatch_0', name: 'TLC' },
+  { file: 'PropsSet_Underground', name: 'Underground' },
+  { file: 'PropsSet_Wargames', name: 'WarGames' },
 ];
+
+// For naming a saved file.
+export const MATCH_FILES = MATCHES.map((m) => m.file);
+
+// The match a file name (with or without .jsfb) belongs to, or null.
+export function matchOf(name) {
+  const base = String(name).replace(/\.jsfb$/i, '').toLowerCase();
+  return MATCHES.find((m) => m.file.toLowerCase() === base) || null;
+}
 
 // The arena that goes with a match type's file.
 export function envForFile(name) {

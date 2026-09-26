@@ -71,6 +71,20 @@ button { cursor: pointer; }
 .panel-head h2 { margin: 0; }
 .head-actions { display: flex; gap: 4px; }
 
+/* Match panel */
+.match-row { display: grid; grid-template-columns: 32px 1fr 32px; gap: 6px; align-items: center; }
+.match-row .icon-btn { color: var(--muted); font-size: 11px; }
+.match-row .icon-btn:hover:not(:disabled) { color: var(--text); background: var(--raised-2); }
+#match-select {
+  width: 100%; height: 32px; padding: 0 8px; border-radius: 8px;
+  background: var(--bg); border: 1px solid var(--border); outline: none;
+  font-weight: 600; font-size: 13px;
+}
+#match-select:focus { border-color: var(--accent); }
+.match-status { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+.match-status b { color: var(--text); }
+.match-status .text-btn { font-size: 12px; padding: 1px 4px; }
+
 .seg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; background: var(--bg); padding: 3px; border-radius: 9px; border: 1px solid var(--border); }
 .seg button {
   border: 0; background: transparent; padding: 7px 0; border-radius: 6px;

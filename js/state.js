@@ -25,6 +25,7 @@ export const S = {
   unknownLines: [],        // imported lines with no matching prop, re-exported as-is
   jsfb: null,              // the game prop set file the scene was opened from (propset.js):
                            // { name, root, hasProps, keep: props the catalog doesn't know }
+  match: null,             // the match being edited (a MATCHES file, matches.js), or null: free design
   selected: new Set(),
   nextId: 1,
 

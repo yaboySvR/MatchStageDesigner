@@ -31,6 +31,16 @@
       <button class="icon-btn sidebar-close" id="btn-sidebar-close" title="Close panel" aria-label="Close panel">✕</button>
     </header>
 
+    <section class="panel" id="match-panel">
+      <h2>Match</h2>
+      <div class="match-row">
+        <button type="button" class="icon-btn" id="match-prev" title="Previous match" aria-label="Previous match">◀</button>
+        <select id="match-select" aria-label="Match" title="The match whose prop set you are editing"></select>
+        <button type="button" class="icon-btn" id="match-next" title="Next match" aria-label="Next match">▶</button>
+      </div>
+      <p class="match-status" id="match-status"></p>
+    </section>
+
     <section class="panel">
       <h2>Arena</h2>
       <div class="seg" id="env-seg" role="radiogroup" aria-label="Environment"></div>
@@ -210,6 +220,25 @@
   </form>
 </dialog>
 
+<dialog id="dlg-connect" class="dlg">
+  <form method="dialog">
+    <h3>Connect PropsSet folder</h3>
+    <div id="con-step1">
+      <p>Pick your <b>BakeMe\Environment\PropsSet</b> folder. The site writes its <span class="con-count"></span> match prop sets there, and from then on switching matches opens that match's file in the folder and your edits save into it by themselves.</p>
+      <p class="muted small">Match files already there are kept once as &lt;name&gt;.jsfb.bak. Nothing is written until you confirm on the next step.</p>
+    </div>
+    <div id="con-step2" hidden>
+      <p>Folder: <b id="con-folder"></b></p>
+      <p id="con-replace"></p>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn primary" type="button" id="con-choose">Choose folder…</button>
+      <button class="btn primary" type="button" id="con-ok" hidden>Replace and connect</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlg-settings" class="dlg wide">
   <form method="dialog">
     <h3>Settings</h3>
@@ -260,8 +289,16 @@
         <h4>Files</h4>
         <dl>
           <dt>.propsprofile</dt><dd>Import adds its props to the scene; Export writes one (the add-on's format)</dd>
-          <dt>Game prop set (.jsfb)</dt><dd>Import a <b>PropsSet_*.jsfb</b> to open that match type's props; Export → Game prop set saves it. It goes in <b>BakeMe\Environment\PropsSet</b>, then bake. Props the designer can't show stay in the file</dd>
-          <dt>Ctrl + S</dt><dd>Chrome / Edge: save the open game file straight into the game folder (picked once; the original is kept as .bak). Otherwise opens Export</dd>
+          <dt>Game prop set (.jsfb)</dt><dd>Import a <b>PropsSet_*.jsfb</b> to open that match type's props (one named like a match opens in that match); Export → Game prop set saves it. It goes in <b>BakeMe\Environment\PropsSet</b>, then bake. Props the designer can't show stay in the file</dd>
+          <dt>Ctrl + S</dt><dd>In a match: save it now. Otherwise, Chrome / Edge: save the open game file straight into the game folder (picked once; the original is kept as .bak), or open Export</dd>
+        </dl>
+        <h4>Matches</h4>
+        <dl>
+          <dt>Match (top of the panel)</dt><dd>Pick a match to edit its prop set. It starts as the game's vanilla one; your changes save by themselves (in this browser, or in your PropsSet folder once it's connected)</dd>
+          <dt>◀ · ▶</dt><dd>Previous · next match</dd>
+          <dt>Connect PropsSet folder</dt><dd>Chrome / Edge: pick your <b>BakeMe\Environment\PropsSet</b> folder; the match prop sets are written there (files already there are kept once as .bak) and your edits keep saving into it</dd>
+          <dt>Free design</dt><dd>The scene as before, not tied to a match; it's kept while you edit matches</dd>
+          <dt>Props the site doesn't show</dt><dd>Some matches have them (the ambulance, the casket, the WarGames pieces…). They stay exactly as they are, whatever you do</dd>
         </dl>
       </div>
       <div>

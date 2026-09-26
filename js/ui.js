@@ -18,6 +18,8 @@ import { initSetsUI, openSaveSetDialog } from './sets-ui.js';
 import { initSettingsUI } from './settings-ui.js';
 import { keyId } from './settings.js';
 import * as GF from './gamefolder.js';
+import * as M from './matches.js';
+import { initMatchesUI } from './matches-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -35,6 +37,11 @@ export function initUI() {
   initSetsUI();
   bindToolbar();
   initSettingsUI();
+  initMatchesUI({
+    setEnv,
+    frameAll: () => tools.frameSelectionOrAll(true),
+    setOpened: (name, bytes) => { opened = { name, bytes }; },
+  });
   bindProfile();
   bindCustomDialog();
   bindManageDialog();
@@ -633,6 +640,16 @@ async function quickSave() {
   }
   if (document.querySelector('dialog[open]')) return;
   settleNow();
+  // A match saves by itself; Ctrl+S does it now (and, being a key press, may
+  // let the browser ask for the folder again).
+  if (S.match) {
+    if ((await M.connectedFolder()) && (await GF.access()) !== 'granted') await M.reconnectFolder();
+    await M.saveNow({ settle: true });
+    const { state, detail } = M.saveStatus();
+    if (state === 'error') toast(`Couldn’t save ${M.matchName(S.match)}: ${detail}`, { error: true });
+    else toast(state === 'pending' ? `Saved ${M.matchName(S.match)} in this browser; the folder needs reconnecting` : `Saved ${M.matchName(S.match)}`);
+    return;
+  }
   if (S.jsfb && GF.supported() && (await GF.folder())) {
     let bytes;
     try {
@@ -732,11 +749,19 @@ function openPropSet(bytes, name) {
 
 const isPropSet = (b) => b.length >= 8 && String.fromCharCode(...b.subarray(4, 8)) === 'Prop';
 
+// A game file named like a match opens as that match's new version (and
+// saves there); any other one opens in free design.
 async function importFile(file) {
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
-    if (isPropSet(bytes)) openPropSet(bytes, file.name);
-    else importText(new TextDecoder().decode(bytes), file.name);
+    if (!isPropSet(bytes)) {
+      importText(new TextDecoder().decode(bytes), file.name);
+    } else if (await M.importIntoMatch(bytes, file.name)) {
+      toast(`Opened ${file.name} as the ${M.matchName(S.match)} match (it saves by itself) · Ctrl+Z to undo`, { ms: 6000 });
+    } else {
+      if (S.match) await M.openMatch(null);
+      openPropSet(bytes, file.name);
+    }
   } catch (e) {
     toast(`Cannot read ${file.name}: ${e.message}`, { error: true });
   }
@@ -826,15 +851,17 @@ function bindProfile() {
     if (file) importFile(file);
   });
 
+  // In a match only the site's props go: the match file, with the props the
+  // site doesn't show, stays as it is.
   $('btn-clear').addEventListener('click', () => {
-    if (!S.props.length && !S.unknownLines.length && !S.jsfb) return;
+    if (!S.props.length && !S.unknownLines.length && (S.match || !S.jsfb)) return;
     store.checkpoint();
     S.props = [];
     S.unknownLines = [];
-    S.jsfb = null;
+    if (!S.match) S.jsfb = null;
     S.selected.clear();
     store.changed();
-    toast('Scene cleared · Ctrl+Z to undo');
+    toast(S.match ? `Removed the props from ${M.matchName(S.match)} · Ctrl+Z to undo` : 'Scene cleared · Ctrl+Z to undo');
   });
 }
 

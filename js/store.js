@@ -98,6 +98,13 @@ export function redo() {
 export const canUndo = () => undoStack.length > 0;
 export const canRedo = () => redoStack.length > 0;
 
+// Forget the history (switching matches: each has its own).
+export function resetHistory() {
+  undoStack.length = 0;
+  redoStack.length = 0;
+  lastTag = null;
+}
+
 // ---------------------------------------------------------------- change + autosave
 
 let saveTimer = null;
@@ -114,7 +121,7 @@ export function save() {
       v: 3, env: S.env, stage: S.stage, autoSnap: S.autoSnap, stacking: S.stacking, xray: S.xray,
       pivot: S.pivot, gizmo: S.gizmo, space: S.space, physics: S.physics, dropHeight: S.dropHeight,
       walkSpeed: S.walkSpeed, walkGravity: S.walkGravity,
-      props: S.props, unknown: S.unknownLines, jsfb: S.jsfb,
+      props: S.props, unknown: S.unknownLines, jsfb: S.jsfb, match: S.match,
     }));
   } catch { /* storage full or unavailable */ }
 }
@@ -140,6 +147,7 @@ export function loadSaved() {
       }));
     S.unknownLines = d.unknown || [];
     S.jsfb = d.jsfb || null;
+    S.match = typeof d.match === 'string' ? d.match : null; // checked against the match list by matches.js
     S.nextId = S.props.reduce((m, p) => Math.max(m, p.id), 0) + 1;
     return true;
   } catch {
