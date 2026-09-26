@@ -7,11 +7,14 @@
 //           the RX / RY / RZ fields, or R.
 // Physics:  P makes placing drop props from above the cursor; End drops the
 //           selection (physics.js runs the simulation).
+// Walking:  Shift+` starts Blender-style walk navigation (walk.js), which has
+//           the mouse and keyboard to itself until it ends.
 
 import { S, emit, on, ENVIRONMENTS } from './state.js';
 import * as V from './viewport.js';
 import * as store from './store.js';
 import * as P from './physics.js';
+import * as W from './walk.js';
 import { snapZ } from './snapping.js';
 import { getGeometry, geomNow, spanAlong, heightOf, footprintOf } from './geometry.js';
 import { getProp } from './catalog.js';
@@ -204,9 +207,9 @@ function placementItems() {
 }
 
 // With physics on, the ghosts hang above the cursor with a guide down to
-// where they'll fall.
+// where they'll fall. Hidden while walking (the cursor is too).
 function refreshAdd() {
-  if (S.mode !== 'add') return;
+  if (S.mode !== 'add' || W.walking()) return;
   add.placements = computePlacements();
   let items = placementItems();
   if (dropping()) items = P.planDrop(items, S.dropHeight);
@@ -686,6 +689,27 @@ export function frameSelectionOrAll(all = false) {
   V.frameProps(all || !S.selected.size ? S.props.map((p) => p.id) : [...S.selected]);
 }
 
+// Walk navigation (Shift+` or the toolbar), unless something else has the
+// mouse right now.
+export function beginWalk() {
+  if (op || gdrag || press || add.first || wheelOpen() || W.walking()) return;
+  W.startWalk();
+}
+
+function walkChanged() {
+  if (W.walking()) {
+    V.setGhosts([]);
+    V.setDropGuides([]);
+    setHover(null);
+    if (G.setHovered(null)) V.requestRender();
+  } else {
+    coordsEl.textContent = 'X — Y — Z —';
+    updateCoords();
+    refreshAdd();
+  }
+  updateHud();
+}
+
 function openWheelHere() {
   const r = viewportEl.getBoundingClientRect();
   const x = mouse.over ? mouse.x : r.left + r.width / 2;
@@ -742,6 +766,12 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const signed = (v, d = 1) => `${v >= 0 ? '+' : ''}${v.toFixed(d)}`;
 
 function updateHud() {
+  hudEl.classList.toggle('walk', W.walking());
+  if (W.walking()) {
+    hudEl.hidden = false;
+    hudEl.innerHTML = W.hudHtml();
+    return;
+  }
   let html = '';
   const verb = dropping() ? 'drop' : 'place';
   const height = dropping() ? ` · ${kbd('↑')} ${kbd('↓')} drop height <b>${S.dropHeight}</b>` : '';
@@ -851,6 +881,7 @@ export function initTools() {
   canvas = V.renderer.domElement;
   setMode('select');
   on('props', () => { refreshGizmo(); updateHud(); });
+  on('walk', walkChanged);
   V.onCamera(() => emit('camera'));
   store.setBeforeEdit(P.settleNow);
   P.setFrameHook(() => {
@@ -1015,6 +1046,13 @@ function onKeyDown(e) {
       op.axisKey = op.axisKey === k ? null : k;
       updateMove();
     }
+    e.preventDefault();
+    return;
+  }
+
+  // Shift+` walks, like Blender (by physical key: the one left of 1).
+  if (W.codeOf(e) === 'Backquote' && e.shiftKey) {
+    if (!e.repeat) beginWalk();
     e.preventDefault();
     return;
   }

@@ -344,6 +344,15 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
   pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 #hud b { color: #fff; }
+#hud.walk { white-space: normal; line-height: 1.75; width: max-content; max-width: min(900px, calc(100% - 32px)); }
+
+/* Walk navigation: a crosshair in the middle of the view and no cursor. */
+#walk-cross {
+  position: absolute; left: 50%; top: 50%; width: 24px; height: 24px;
+  transform: translate(-50%, -50%); pointer-events: none; z-index: 5;
+}
+#walk-cross svg { display: block; }
+body.walking, body.walking * { cursor: none !important; }
 #hud kbd, .help-grid kbd { font: 600 11px var(--font); padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,.1); }
 
 #statusbar {

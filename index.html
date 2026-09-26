@@ -85,6 +85,7 @@
       <button class="chip" id="btn-view-top" title="Top view (T)">Top</button>
       <button class="chip" id="btn-view-persp" title="Perspective view">3D</button>
       <button class="chip" id="btn-frame" title="Frame selection (F) / everything (Home)">Frame</button>
+      <button class="chip" id="btn-walk" title="Walk navigation (Shift+`), like Blender's: the mouse looks around, W A S D move. Click keeps the view, Esc goes back">Walk</button>
       <span class="sep"></span>
       <div class="tool-seg" role="radiogroup" aria-label="Handles">
         <button class="chip" role="radio" id="btn-gizmo-move" title="Move handles (W)">✥ Move</button>
@@ -103,6 +104,12 @@
     <div id="selection-card" class="card" hidden></div>
 
     <div id="hud" hidden></div>
+    <div id="walk-cross" hidden>
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+        <path d="M12 2v7M12 15v7M2 12h7M15 12h7" stroke="#000" stroke-opacity=".55" stroke-width="4" stroke-linecap="round"/>
+        <path d="M12 2v7M12 15v7M2 12h7M15 12h7" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
     <div id="statusbar">
       <span id="status-coords">X — Y — Z —</span>
       <span id="status-env"></span>
@@ -204,6 +211,17 @@
           <dt>Shift + drag</dt><dd>Pan</dd>
           <dt>Wheel</dt><dd>Zoom</dd>
           <dt>T · F · Home</dt><dd>Top view · frame selection · frame all</dd>
+        </dl>
+        <h4>Walk navigation</h4>
+        <dl>
+          <dt>Shift + ` · toolbar Walk</dt><dd>Walk around like Blender's walk mode: the mouse looks</dd>
+          <dt>W A S D · arrows</dt><dd>Move (E · Q straight up / down, R · F up / down the view)</dd>
+          <dt>Shift · Alt (hold)</dt><dd>Five times faster · slower</dd>
+          <dt>Wheel · + −</dt><dd>Walk speed (remembered)</dd>
+          <dt>Space</dt><dd>Teleport to what the crosshair is on</dd>
+          <dt>Tab · V</dt><dd>Gravity on / off (stay on the floor, fall off edges) · jump</dd>
+          <dt>Click · Enter</dt><dd>Keep the new view</dd>
+          <dt>Esc · right-click</dt><dd>Go back to where the walk started</dd>
         </dl>
         <h4>Placing</h4>
         <dl>

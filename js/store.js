@@ -113,6 +113,7 @@ export function save() {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       v: 3, env: S.env, stage: S.stage, autoSnap: S.autoSnap, stacking: S.stacking, xray: S.xray,
       pivot: S.pivot, gizmo: S.gizmo, space: S.space, physics: S.physics, dropHeight: S.dropHeight,
+      walkSpeed: S.walkSpeed, walkGravity: S.walkGravity,
       props: S.props, unknown: S.unknownLines, jsfb: S.jsfb,
     }));
   } catch { /* storage full or unavailable */ }
@@ -127,6 +128,7 @@ export function loadSaved() {
       stacking: !!d.stacking, xray: !!d.xray, pivot: d.pivot === 'group' ? 'group' : 'each',
       gizmo: d.gizmo === 'rotate' ? 'rotate' : 'move', space: d.space === 'local' ? 'local' : 'world',
       physics: !!d.physics, dropHeight: Number.isFinite(d.dropHeight) ? d.dropHeight : S.dropHeight,
+      walkSpeed: d.walkSpeed > 0 ? d.walkSpeed : S.walkSpeed, walkGravity: !!d.walkGravity,
     });
     S.props = (d.props || [])
       .filter((p) => getProp(p.key)?.states[p.state] !== undefined)

@@ -39,6 +39,8 @@ export const S = {
   space: 'world',          // gizmo axes: 'world' | 'local' (single prop)
   physics: false,          // placing drops props from above the cursor (physics.js)
   dropHeight: 60,          // how far above the surface dropped props start
+  walkSpeed: 2.5,          // walk navigation speed, meters (100 units) a second (walk.js)
+  walkGravity: false,      // walk navigation keeps to the floor
 };
 
 const listeners = {};

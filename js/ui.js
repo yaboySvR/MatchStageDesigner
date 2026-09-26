@@ -473,6 +473,7 @@ function bindToolbar() {
   $('btn-view-top').addEventListener('click', () => V.viewTop());
   $('btn-view-persp').addEventListener('click', () => V.viewPerspective());
   $('btn-frame').addEventListener('click', () => tools.frameSelectionOrAll());
+  $('btn-walk').addEventListener('click', () => tools.beginWalk());
   $('btn-undo').addEventListener('click', tools.doUndo);
   $('btn-redo').addEventListener('click', tools.doRedo);
   $('btn-help').addEventListener('click', () => $('dlg-help').showModal());

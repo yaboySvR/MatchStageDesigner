@@ -44,6 +44,11 @@ export const requestRender = () => { needsRender = true; };
 let cameraListener = null;
 export const onCamera = (fn) => { cameraListener = fn; };
 
+// Runs at the start of every animation frame, before drawing (walk.js moves
+// the camera here, so a frame shows the camera where it is this frame).
+let frameHook = null;
+export const onFrame = (fn) => { frameHook = fn; };
+
 export function initViewport(container) {
   host = container;
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -88,8 +93,9 @@ export function initViewport(container) {
   new ResizeObserver(resize).observe(container);
   resize();
 
-  const tick = () => {
+  const tick = (now = performance.now()) => {
     requestAnimationFrame(tick);
+    frameHook?.(now);
     if (!needsRender) return;
     needsRender = false;
     G.update();
@@ -384,6 +390,25 @@ export function pickProp(clientX, clientY) {
 export function mouseRay(clientX, clientY) {
   setRay(clientX, clientY);
   return raycaster.ray;
+}
+
+// First thing along a ray (origin, unit direction): the arena models that
+// show, placed props, or else the ground (Z = 0). { dist, normal } with the
+// normal turned to face back along the ray, or null.
+export function castRay(origin, direction, far = 40000) {
+  raycaster.set(origin, direction);
+  raycaster.far = far;
+  scene.updateMatrixWorld();
+  const targets = [...Object.values(envMeshes).filter((m) => m.visible), ...propMeshes.values()];
+  const hit = raycaster.intersectObjects(targets, false)[0];
+  raycaster.far = Infinity;
+  if (hit) {
+    const normal = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+    if (normal.dot(direction) > 0) normal.negate();
+    return { dist: hit.distance, normal };
+  }
+  const t = direction.z < -1e-6 ? -origin.z / direction.z : -1;
+  return t > 0 && t < far ? { dist: t, normal: new THREE.Vector3(0, 0, 1) } : null;
 }
 
 // Intersect the mouse ray with the horizontal plane Z = z.

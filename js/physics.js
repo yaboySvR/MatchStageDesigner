@@ -227,6 +227,16 @@ function groundBelow(x, y, z) {
   return hit ? z - hit.timeOfImpact / M : null;
 }
 
+// Distance (cm) to the first thing along a ray, or null: the arena models
+// that show, placed props, falling props and the ground. Quick enough to run
+// every frame (walk navigation uses it to find the floor).
+export function castRay(o, d, maxDist = 100000) {
+  if (!world) return null;
+  syncStatic();
+  const hit = world.castRay(new R.Ray({ x: o.x * M, y: o.y * M, z: o.z * M }, { x: d.x, y: d.y, z: d.z }), maxDist * M, true);
+  return hit ? hit.timeOfImpact / M : null;
+}
+
 // First surface along a ray (the camera ray through the cursor) that a prop
 // could rest on. Steep hits (walls, the cage mesh) are looked through.
 export function surfaceOnRay({ origin: o, direction: d }) {

@@ -120,6 +120,28 @@ node web/tools/rotation-check/verify_rotation.mjs
 - **Duplicate** (Ctrl+D) places the copy next to the original.
 - G / R still work Blender-style (click to finish, Esc cancels).
 
+## Walk navigation
+
+Blender's walk mode (View ‣ Navigation ‣ Walk Navigation), with its keys and
+default settings (`js/walk.js`).
+
+- **Start**: `Shift` + `` ` `` (the key left of 1) or toolbar *Walk*. The
+  cursor hides and the mouse looks around; a crosshair marks the middle.
+- **Move**: `W` `A` `S` `D` or the arrows. Forward goes where you look;
+  `E` / `Q` go straight up / down, `R` / `F` up / down the view. Hold `Shift`
+  for 5× faster, `Alt` for 5× slower. The wheel (or `+` / `-`) changes the
+  speed: 2.5 m/s (250 units a second) to start, remembered between walks.
+- **Teleport**: `Space` flies to what the crosshair is on, stopping eye height
+  (160) short of it.
+- **Gravity**: `Tab`. The camera then stays 160 above whatever is under it
+  (floor, ring, props), hops up onto things it walks into and falls off
+  edges; `V` jumps (hold for the full 0.4 m, `.` / `,` change it). Finding the
+  floor uses the physics engine, which downloads the first time gravity is on;
+  until then the snap surfaces stand in.
+- **Finish**: click or `Enter` keeps the new view (orbiting then turns around
+  what the crosshair was on); `Esc` or right-click goes back to where the
+  walk started. The status bar shows the eye position while walking.
+
 ## Prop sets
 
 Save a group of placed props exactly as it is, and stamp copies of it
