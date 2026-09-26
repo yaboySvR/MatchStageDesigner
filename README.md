@@ -209,7 +209,11 @@ The *Match* panel at the top of the sidebar edits them one at a time
   permission again (switching matches, *Reconnect* or Ctrl+S); until then
   edits wait in this browser and go in on reconnecting. Without permission a
   match you never edited here won't open (it would show the vanilla one in
-  place of your file).
+  place of your file). The folder can't be under Program Files, Windows or
+  AppData: Chrome and Edge refuse those whatever they hold (their message
+  says it "contains system files"), so a mod tool kept inside the Steam game
+  folder can't be connected; matches then stay in this browser, and Export
+  → *Download* gives the file to put in PropsSet.
 - **Props the site doesn't show** (the ambulance, the casket, the dumpster,
   the WarGames pieces…) stay exactly as they are, whatever you do: Clear scene
   in a match only removes the site's props. The panel says how many a match
@@ -240,8 +244,8 @@ The format and how it was worked out are in [`jsfb's/README.md`](jsfb's/README.m
   folder with the `PropsSet_*.jsfb` files; the browser remembers it (and may
   ask again for permission to edit it). The first save over a file keeps the
   original next to it as `<name>.jsfb.bak`, never overwritten afterwards.
-  With a folder picked, *Import* opens in it too. Chrome won't open system
-  folders such as Program Files; pick the mod tool's working folder then.
+  With a folder picked, *Import* opens in it too. Like connecting a match
+  folder, it can't use a folder under Program Files, Windows or AppData.
   Other browsers keep *Download*. Code: `js/gamefolder.js`.
 - **Nothing is lost**: each prop keeps the fields the designer doesn't show
   (hashes, scale, extra lists) and writes them back. Props the catalog doesn't
