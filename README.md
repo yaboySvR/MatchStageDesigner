@@ -248,8 +248,9 @@ The format and how it was worked out are in [`jsfb's/README.md`](jsfb's/README.m
   folder with the `PropsSet_*.jsfb` files; the browser remembers it (and may
   ask again for permission to edit it). The first save over a file keeps the
   original next to it as `<name>.jsfb.bak`, never overwritten afterwards.
-  With a folder picked, *Import* opens in it too. Like connecting a match
-  folder, it can't use a folder under Program Files, Windows or AppData.
+  Like connecting a match folder, it can't use a folder under Program Files,
+  Windows or AppData. *Import* keeps the plain upload dialog, which opens
+  files from anywhere.
   Other browsers keep *Download*. Code: `js/gamefolder.js`.
 - **Nothing is lost**: each prop keeps the fields the designer doesn't show
   (hashes, scale, extra lists) and writes them back. Props the catalog doesn't

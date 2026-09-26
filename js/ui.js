@@ -832,19 +832,9 @@ function bindProfile() {
     toast(`Saved ${file.name} with your props appended`);
   });
 
-  // With a game folder picked (Chrome / Edge), Import's dialog opens in it.
-  $('btn-import').addEventListener('click', async () => {
-    if (GF.supported() && GF.canOpenFromFolder() && (await GF.folder())) {
-      try {
-        const file = await GF.openFromFolder();
-        if (file) importFile(file);
-      } catch (e) {
-        toast(`Cannot open: ${e.message}`, { error: true });
-      }
-      return;
-    }
-    $('file-import').click();
-  });
+  // The plain upload dialog: it opens files from anywhere. (The folder-access
+  // picker would refuse files under Program Files, Windows or AppData.)
+  $('btn-import').addEventListener('click', () => $('file-import').click());
   $('file-import').addEventListener('change', (e) => {
     const file = e.target.files[0];
     e.target.value = '';

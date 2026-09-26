@@ -154,24 +154,3 @@ export async function saveFile(name, bytes, { backup = true } = {}) {
   await write(dir, name, bytes);
   return { folder: dir.name, backedUp };
 }
-
-// The system's Open dialog, starting in the game folder. Resolves to the File
-// picked, or null when the dialog is closed.
-export async function openFromFolder() {
-  const dir = await folder();
-  try {
-    const [file] = await window.showOpenFilePicker({
-      ...(dir ? { startIn: dir } : {}),
-      types: [{
-        description: 'Game prop sets and profiles',
-        accept: { 'application/octet-stream': ['.jsfb'], 'text/plain': ['.propsprofile', '.txt'] },
-      }],
-    });
-    return await file.getFile();
-  } catch (e) {
-    if (e.name === 'AbortError') return null;
-    throw e;
-  }
-}
-
-export const canOpenFromFolder = () => typeof window.showOpenFilePicker === 'function';
