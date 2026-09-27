@@ -30,7 +30,8 @@
       <button class="icon-btn sidebar-close" id="btn-sidebar-close" title="Close panel" aria-label="Close panel">✕</button>
     </header>
 
-    <section class="panel" id="match-panel">
+    <!-- Switched off for now (js/features.js): the Match panel. -->
+    <section class="panel" id="match-panel" data-feature="matches" hidden>
       <h2>Match</h2>
       <div class="match-row">
         <button type="button" class="icon-btn" id="match-prev" title="Previous match" aria-label="Previous match">◀</button>
@@ -145,7 +146,8 @@
 <dialog id="dlg-export" class="dlg">
   <form method="dialog">
     <h3>Export</h3>
-    <div class="seg two" id="exp-format" role="radiogroup" aria-label="File type">
+    <!-- Switched off for now (js/features.js): exporting a game prop set. -->
+    <div class="seg two" id="exp-format" role="radiogroup" aria-label="File type" data-feature="jsfbExport" hidden>
       <button type="button" role="radio" data-format="profile" title="The Blender add-on's format">Profile <small>.propsprofile</small></button>
       <button type="button" role="radio" data-format="jsfb" title="The game's own file for one match type (PropsSet_*.jsfb)">Game prop set <small>.jsfb</small></button>
     </div>
@@ -319,11 +321,12 @@
         <h4>Files</h4>
         <dl>
           <dt>.propsprofile</dt><dd>Import adds its props to the scene; Export writes one (the add-on's format)</dd>
-          <dt>Game prop set (.jsfb)</dt><dd>Import a <b>PropsSet_*.jsfb</b> to open that match type's props (one named like a match opens in that match); Export → Game prop set saves it. It goes in <b>BakeMe\Environment\PropsSet</b>, then bake. Props the designer can't show stay in the file</dd>
-          <dt>Ctrl + S</dt><dd>In a match: save it now. Otherwise, Chrome / Edge: save the open game file straight into the game folder (picked once; the original is kept as .bak), or open Export</dd>
+          <dt data-feature="jsfbExport" hidden>Game prop set (.jsfb)</dt><dd data-feature="jsfbExport" hidden>Import a <b>PropsSet_*.jsfb</b> to open that match type's props (one named like a match opens in that match); Export → Game prop set saves it. It goes in <b>BakeMe\Environment\PropsSet</b>, then bake. Props the designer can't show stay in the file</dd>
+          <dt data-feature="jsfbExport" hidden>Ctrl + S</dt><dd data-feature="jsfbExport" hidden>In a match: save it now. Otherwise, Chrome / Edge: save the open game file straight into the game folder (picked once; the original is kept as .bak), or open Export</dd>
+          <dt data-feature-off="jsfbExport">Ctrl + S</dt><dd data-feature-off="jsfbExport">Open Export (inside it: Download)</dd>
         </dl>
-        <h4>Matches</h4>
-        <dl>
+        <h4 data-feature="matches" hidden>Matches</h4>
+        <dl data-feature="matches" hidden>
           <dt>Match (top of the panel)</dt><dd>Pick a match to edit its prop set. It starts as the game's vanilla one; your changes save by themselves (in this browser, or in your PropsSet folder once it's connected)</dd>
           <dt>◀ · ▶</dt><dd>Previous · next match</dd>
           <dt>Connect PropsSet folder</dt><dd>Chrome / Edge (on the https:// address): pick the <b>Environment\PropsSet</b> folder of a BakeMe folder you bake; the site opens the match files already there as they are (missing ones get added, or pick Replace them instead) and your edits keep saving into it. It can't be inside system folders such as Program Files (where Steam puts the game) or AppData: keep a BakeMe folder of its own in Desktop, Documents or Downloads, e.g. <b>Documents\BakeMe_Propsets\Environment\PropsSet</b>, and bake that</dd>

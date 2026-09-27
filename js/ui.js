@@ -20,6 +20,7 @@ import { keyId } from './settings.js';
 import * as GF from './gamefolder.js';
 import * as M from './matches.js';
 import { initMatchesUI } from './matches-ui.js';
+import { FEATURES, applyFeatures } from './features.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -31,6 +32,7 @@ function iconHtml(url, name) {
 }
 
 export function initUI() {
+  applyFeatures();
   buildEnvSeg();
   bindToggles();
   bindCatalog();
@@ -41,7 +43,7 @@ export function initUI() {
     setEnv,
     frameAll: () => tools.frameSelectionOrAll(true),
     setOpened: (name, bytes) => { opened = { name, bytes }; },
-  });
+  }, { enabled: FEATURES.matches });
   bindProfile();
   bindCustomDialog();
   bindManageDialog();
@@ -650,7 +652,7 @@ async function quickSave() {
     else toast(state === 'pending' ? `Saved ${M.matchName(S.match)} in this browser; the folder needs reconnecting` : `Saved ${M.matchName(S.match)}`);
     return;
   }
-  if (S.jsfb && GF.supported() && (await GF.folder())) {
+  if (S.jsfb && FEATURES.jsfbExport && GF.supported() && (await GF.folder())) {
     let bytes;
     try {
       bytes = writePropSet({ props: S.props, unknownLines: S.unknownLines, file: S.jsfb });
@@ -666,6 +668,7 @@ async function quickSave() {
 }
 
 function setExportFormat(format) {
+  if (!FEATURES.jsfbExport) format = 'profile';
   expNames[expFormat] = $('exp-name').value;
   expFormat = format;
   const jsfb = format === 'jsfb';
@@ -756,7 +759,7 @@ async function importFile(file) {
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (!isPropSet(bytes)) {
       importText(new TextDecoder().decode(bytes), file.name);
-    } else if (await M.importIntoMatch(bytes, file.name)) {
+    } else if (FEATURES.matches && await M.importIntoMatch(bytes, file.name)) {
       toast(`Opened ${file.name} as the ${M.matchName(S.match)} match (it saves by itself) · Ctrl+Z to undo`, { ms: 6000 });
     } else {
       if (S.match) await M.openMatch(null);
@@ -781,7 +784,7 @@ function bindProfile() {
     const n = unrecognized().length;
     $('exp-unknown-label').textContent = `Keep ${n} unrecognized entr${n === 1 ? 'y' : 'ies'} from imported files`;
     // A scene opened from a game file saves back to it by default.
-    if (S.jsfb) {
+    if (S.jsfb && FEATURES.jsfbExport) {
       expNames[expFormat] = $('exp-name').value;
       expNames.jsfb = S.jsfb.name.replace(/\.jsfb$/i, '');
       expFormat = 'jsfb';

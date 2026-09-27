@@ -18,8 +18,15 @@ let hooks;          // from ui.js: { setEnv, frameAll, setOpened }
 let busy = false;   // a switch is under way
 let chosen = null;  // the folder picked in the connect dialog, until confirmed
 
-export function initMatchesUI(h) {
+export function initMatchesUI(h, { enabled = true } = {}) {
   hooks = h;
+  if (!enabled) {
+    // Switched off for now (features.js): the panel stays hidden, and a match
+    // left open last time goes back to free design (it keeps its saved copy).
+    on('match', applyMatch);
+    if (S.match) M.openMatch(null).catch((e) => toast(`Couldn’t leave the match: ${e.message}`, { error: true }));
+    return;
+  }
   const sel = $('match-select');
   sel.innerHTML = '<option value="">Free design</option>'
     + M.MATCHES.map((m) => `<option value="${m.file}">${esc(m.name)}</option>`).join('');
