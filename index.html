@@ -131,7 +131,7 @@
     <div id="marquee" hidden></div>
     <div id="gizmo-readout" class="readout" hidden></div>
     <div id="wheel" hidden></div>
-    <div id="drop-hint" hidden><div>Drop a <b>.propsprofile</b> or a game <b>.jsfb</b> to import</div></div>
+    <div id="drop-hint" hidden><div>Drop a <b>.propsprofile</b><span data-feature="jsfbImport" hidden> or a game <b>.jsfb</b></span> to import</div></div>
 
     <div id="loading">
       <div class="loader-box">
@@ -321,7 +321,7 @@
         <h4>Files</h4>
         <dl>
           <dt>.propsprofile</dt><dd>Import adds its props to the scene; Export writes one (the add-on's format)</dd>
-          <dt data-feature="jsfbExport" hidden>Game prop set (.jsfb)</dt><dd data-feature="jsfbExport" hidden>Import a <b>PropsSet_*.jsfb</b> to open that match type's props (one named like a match opens in that match); Export → Game prop set saves it. It goes in <b>BakeMe\Environment\PropsSet</b>, then bake. Props the designer can't show stay in the file</dd>
+          <dt data-feature="jsfbExport jsfbImport" hidden>Game prop set (.jsfb)</dt><dd data-feature="jsfbExport jsfbImport" hidden>Import a <b>PropsSet_*.jsfb</b> to open that match type's props (one named like a match opens in that match); Export → Game prop set saves it. It goes in <b>BakeMe\Environment\PropsSet</b>, then bake. Props the designer can't show stay in the file</dd>
           <dt data-feature="jsfbExport" hidden>Ctrl + S</dt><dd data-feature="jsfbExport" hidden>In a match: save it now. Otherwise, Chrome / Edge: save the open game file straight into the game folder (picked once; the original is kept as .bak), or open Export</dd>
           <dt data-feature-off="jsfbExport">Ctrl + S</dt><dd data-feature-off="jsfbExport">Open Export (inside it: Download)</dd>
         </dl>

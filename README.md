@@ -199,8 +199,7 @@ anywhere.
 
 > **Switched off for now.** The Match panel is hidden (`matches: false` in
 > `js/features.js`); the code below is all still there. While it's off, a
-> match left open from an earlier visit goes back to free design, and game
-> files named like a match open in free design.
+> match left open from an earlier visit goes back to free design.
 
 Each match type has its own prop set in the game (`PropsSet_<Mode>.jsfb`).
 The *Match* panel at the top of the sidebar edits them one at a time
@@ -246,10 +245,11 @@ The *Match* panel at the top of the sidebar edits them one at a time
 
 ## Game prop sets (.jsfb)
 
-> **Exporting them is switched off for now** (`jsfbExport: false` in
-> `js/features.js`): Export only writes `.propsprofile`, and Ctrl+S opens
-> Export. *Import* still opens a `PropsSet_*.jsfb`, in free design, so its
-> props can be exported as a profile.
+> **Switched off for now**, both ways (`jsfbExport: false` and
+> `jsfbImport: false` in `js/features.js`): Export only writes
+> `.propsprofile`, Ctrl+S opens Export, and *Import* / drag and drop turn a
+> `.jsfb` away with a message (it's recognised by its contents, whatever the
+> file is called). The code below is all still there.
 
 The game keeps one prop set per match type, `PropsSet_<Mode>.jsfb`. The
 designer opens and saves these directly, without the intermediary program.

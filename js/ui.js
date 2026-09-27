@@ -759,6 +759,8 @@ async function importFile(file) {
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (!isPropSet(bytes)) {
       importText(new TextDecoder().decode(bytes), file.name);
+    } else if (!FEATURES.jsfbImport) {
+      toast(`${file.name} is a game prop set (.jsfb); those can't be opened for now. Import a .propsprofile instead.`, { error: true, ms: 6000 });
     } else if (FEATURES.matches && await M.importIntoMatch(bytes, file.name)) {
       toast(`Opened ${file.name} as the ${M.matchName(S.match)} match (it saves by itself) · Ctrl+Z to undo`, { ms: 6000 });
     } else {
@@ -838,6 +840,10 @@ function bindProfile() {
   // The plain upload dialog: it opens files from anywhere. (The folder-access
   // picker would refuse files under Program Files, Windows or AppData.)
   $('btn-import').addEventListener('click', () => $('file-import').click());
+  if (!FEATURES.jsfbImport) {
+    $('file-import').accept = '.propsprofile,.txt';
+    $('btn-import').title = 'Add the props of a .propsprofile';
+  }
   $('file-import').addEventListener('change', (e) => {
     const file = e.target.files[0];
     e.target.value = '';
