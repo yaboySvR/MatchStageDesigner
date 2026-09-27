@@ -122,11 +122,9 @@ async function write(dir, name, data) {
   await out.close();
 }
 
-// Read `name` from the folder: its bytes, or null if it isn't there or the
-// site may not read the folder right now (this never asks).
-export async function readFile(name) {
-  const dir = await folder();
-  if (!dir || (await access()) !== 'granted') return null;
+// Read `name` from `dir`: its bytes, or null if it isn't there (any other
+// failure throws, so a file that can't be read never passes for a missing one).
+export async function readFrom(dir, name) {
   try {
     const file = await (await dir.getFileHandle(name)).getFile();
     return new Uint8Array(await file.arrayBuffer());
@@ -134,6 +132,14 @@ export async function readFile(name) {
     if (e.name === 'NotFoundError') return null;
     throw e;
   }
+}
+
+// Read `name` from the folder: its bytes, or null if it isn't there or the
+// site may not read the folder right now (this never asks).
+export async function readFile(name) {
+  const dir = await folder();
+  if (!dir || (await access()) !== 'granted') return null;
+  return readFrom(dir, name);
 }
 
 // Write `name` (e.g. PropsSet_HIAC.jsfb) into the folder, keeping the

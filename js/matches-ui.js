@@ -1,8 +1,9 @@
 // The Match panel: pick a match (or free design), step through them with the
 // arrows, see where edits are saved, and connect the PropsSet folder
 // (matches.js does the work). Connecting is two steps: the dialog first says
-// which folder to pick, then how many files there get replaced, and nothing
-// is written until the user confirms.
+// which folder to pick, then which match files are there (they get opened
+// from it, or replaced if the user picks that), and nothing is written until
+// the user confirms.
 
 import { S, on } from './state.js';
 import * as M from './matches.js';
@@ -102,6 +103,7 @@ async function renderStatus() {
   } else {
     line = S.match ? `${saved === 'Saved' ? 'Saved in this browser' : saved}` : 'Pick a match to edit its prop set';
     if (GF.supported()) line += ' · <button type="button" class="text-btn" data-act="connect">Connect PropsSet folder…</button>';
+    else if (!window.isSecureContext) line += ' · <span class="muted" title="Browsers only let https:// pages use a folder on your computer">Connecting a PropsSet folder needs the site’s https:// address</span>';
   }
   const kept = S.match ? S.jsfb?.keep?.length || 0 : 0;
   if (kept) {
@@ -119,11 +121,12 @@ async function reconnect() {
 
 // ---------------------------------------------------------------- connecting
 
-function showStep(n) {
+function showStep(n, filesThere = 0) {
   $('con-step1').hidden = n !== 1;
   $('con-step2').hidden = n !== 2;
   $('con-choose').hidden = n !== 1;
   $('con-ok').hidden = n !== 2;
+  $('con-overwrite').hidden = n !== 2 || !filesThere;
 }
 
 function openConnect() {
@@ -143,30 +146,47 @@ function bindConnectDialog() {
       return;
     }
     const there = await M.filesIn(chosen);
+    const lower = new Set(there.map((f) => f.toLowerCase()));
+    const editedHere = [...(await M.editedMatches())].filter((f) => lower.has(M.fileName(f).toLowerCase()));
     const n = M.MATCHES.length;
+    const missing = n - there.length;
     $('con-folder').textContent = chosen.name;
     $('con-replace').textContent = there.length
-      ? `${there.length} of the ${n} match files are already there and get replaced; each one is kept once as <name>.jsfb.bak.`
-      : `None of the ${n} match files are there yet; they get added.`;
-    showStep(2);
+      ? `${there.length} of the ${n} match files are already here: the site opens them from this folder as they are${missing ? `, and adds the ${missing} missing one${missing === 1 ? '' : 's'}` : ''}.`
+      : `None of the ${n} match files are here yet; they get added.`;
+    $('con-note').textContent = editedHere.length
+      ? `${editedHere.length} match${editedHere.length === 1 ? '' : 'es'} you edited in this browser will show this folder’s file instead. To put your browser’s versions here, use Replace them instead (each file here is kept once as <name>.jsfb.bak).`
+      : '';
+    showStep(2, there.length);
   });
-  $('con-ok').addEventListener('click', async () => {
-    if (!chosen) return;
-    const btn = $('con-ok');
-    btn.disabled = true;
-    btn.textContent = 'Writing…';
-    try {
-      const { count, backedUp } = await M.connect(chosen);
-      dlg.close();
-      toast(`Connected ${chosen.name}: ${count} match prop sets written${backedUp ? `, ${backedUp} original${backedUp === 1 ? '' : 's'} kept as .bak` : ''}`, { ms: 6000 });
-    } catch (e) {
-      toast(`Couldn’t connect: ${e.message}`, { error: true });
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Replace and connect';
-      renderStatus();
-      renderOptions();
-    }
-  });
+  $('con-ok').addEventListener('click', () => connectChosen(false));
+  $('con-overwrite').addEventListener('click', () => connectChosen(true));
   dlg.addEventListener('close', () => { chosen = null; });
+}
+
+async function connectChosen(replace) {
+  if (!chosen) return;
+  const dir = chosen;
+  const buttons = [$('con-ok'), $('con-overwrite')];
+  const label = $('con-ok').textContent;
+  for (const b of buttons) b.disabled = true;
+  $('con-ok').textContent = replace ? 'Writing…' : 'Connecting…';
+  try {
+    const r = await M.connect(dir, { replace });
+    $('dlg-connect').close();
+    const plural = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
+    const parts = replace
+      ? [`${plural(r.added, 'match prop set')} written`, r.backedUp && `${plural(r.backedUp, 'original')} kept as .bak`]
+      : [r.read && `${plural(r.read, 'match file')} opened from it`, r.added && `${r.added} added`];
+    let msg = `Connected ${dir.name}: ${parts.filter(Boolean).join(', ') || 'nothing to change'}`;
+    if (r.unreadable.length) msg += `. Couldn’t read ${r.unreadable.join(', ')}: left as ${r.unreadable.length === 1 ? 'it is' : 'they are'}`;
+    toast(msg, { ms: r.unreadable.length ? 10000 : 6000 });
+  } catch (e) {
+    toast(`Couldn’t connect: ${e.message}`, { error: true });
+  } finally {
+    for (const b of buttons) b.disabled = false;
+    $('con-ok').textContent = label;
+    renderStatus();
+    renderOptions();
+  }
 }

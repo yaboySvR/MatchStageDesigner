@@ -208,10 +208,13 @@ The *Match* panel at the top of the sidebar edits them one at a time
 - **Saving**: a match saves by itself a moment after each change (Ctrl+S
   saves at once). Without a connected folder the changes stay in this browser
   (a • marks edited matches); Export works as usual.
-- **Connect PropsSet folder** (Chrome / Edge): pick your
-  `BakeMe\Environment\PropsSet` folder. After you confirm, the site writes its
-  17 match prop sets there (the ones you edited here as edited, the rest
-  vanilla); match files already there are kept once as `<name>.jsfb.bak`.
+- **Connect PropsSet folder** (Chrome / Edge, on the site's `https://`
+  address: browsers only give folders to secure pages): pick your
+  `BakeMe\Environment\PropsSet` folder. The site opens the match files
+  already there as they are, and after you confirm it adds the missing ones
+  (as edited here, or vanilla); nothing already there is changed. A file it
+  can't read is left exactly as it is. *Replace them instead* writes the
+  site's versions over them (each original kept once as `<name>.jsfb.bak`).
   From then on, switching matches opens that match's file in the folder and
   your edits save into it. After a browser restart the browser asks for
   permission again (switching matches, *Reconnect* or Ctrl+S); until then

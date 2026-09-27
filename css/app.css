@@ -176,7 +176,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 textarea.code-input { height: 76px; white-space: pre-wrap; word-break: break-all; }
 .code-sum { text-align: center; }
 #code-note:empty, #code-error:empty { display: none; }
-.dlg-actions .code-file { margin-right: auto; }
+.dlg-actions .code-file, .dlg-actions .con-overwrite { margin-right: auto; }
+#con-note:empty { display: none; }
 .small { font-size: 12px; }
 .toast { display: flex; align-items: center; gap: 12px; }
 .toast-action { border: 0; background: none; color: var(--accent); font-weight: 700; padding: 2px 4px; border-radius: 6px; }

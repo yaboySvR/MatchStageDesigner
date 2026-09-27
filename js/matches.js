@@ -10,10 +10,12 @@
 // browser restart it has to ask again, which needs a click (switching
 // matches, Reconnect, Ctrl+S); until then folder writes wait, marked pending.
 //
-// Connecting a folder writes every match into it, after the user confirmed;
-// each file already there is kept once as <name>.jsfb.bak. A folder picked
-// only for Export's "Save to game folder" isn't connected: matches never
-// write into a folder without that confirmation.
+// Connecting a folder (after the user confirmed) reads the match files
+// already in it: from then on those are the matches, and only the missing
+// ones get added. The user can choose to replace them instead: every match is
+// then written into it, each file already there kept once as <name>.jsfb.bak.
+// A folder picked only for Export's "Save to game folder" isn't connected:
+// matches never write into a folder without that confirmation.
 //
 // Props the site doesn't have stay exactly as they were in every match
 // (propset.js keeps them); nothing here removes or changes them.
@@ -283,34 +285,61 @@ export async function importIntoMatch(bytes, name) {
 
 // ---------------------------------------------------------------- the folder
 
-// Which match files are in `dir` already (they get replaced on connecting).
+// Which match files are in `dir` already.
 export async function filesIn(dir) {
   const names = new Set((await GF.listPropSets(dir)).map((n) => n.toLowerCase()));
   return MATCHES.map((m) => fileName(m.file)).filter((n) => names.has(n.toLowerCase()));
 }
 
-// Connect `dir` (picked, and confirmed by the user): write every match into
-// it, the open one as it is now and the others as edited here or vanilla.
-// Returns { count, backedUp }.
-export async function connect(dir) {
+// Connect `dir` (picked, and confirmed by the user). The match files already
+// in it are read, not changed: from now on they are those matches (the open
+// one reloads from its file). Only the missing ones get written, as edited
+// here or vanilla. A file the site can't read stays exactly as it is, and
+// nothing writes over it by itself; if it's the open match's, free design
+// opens instead. With replace, every match is written into the folder: the
+// open one as it is now, the others as edited here or vanilla, each file
+// already there kept once as <name>.jsfb.bak.
+// Returns { read, added, backedUp, unreadable: [file names] }.
+export async function connect(dir, { replace = false } = {}) {
   P.settleNow();
   clearTimeout(timer);
   timer = null;
   await chain;
   await GF.useFolder(dir);
   await putMeta('folder', dir);
-  let backedUp = 0;
+  const res = { read: 0, added: 0, backedUp: 0, unreadable: [] };
+  let reopen = null;      // the open match as the folder has it
+  let openBroken = false; // the open match's file can't be read
   for (const m of MATCHES) {
-    const copy = await getCopy(m.file);
+    const name = fileName(m.file);
     const open = m.file === S.match;
+    const copy = await getCopy(m.file);
+    const there = replace ? null : await GF.readFrom(dir, name);
+    if (there) {
+      try {
+        readPropSet(there);
+      } catch {
+        res.unreadable.push(name);
+        if (copy?.pending) await putCopy(m.file, { ...copy, pending: false });
+        if (open) openBroken = true;
+        continue;
+      }
+      await putCopy(m.file, { bytes: there, pending: false });
+      if (open) reopen = there;
+      res.read++;
+      continue;
+    }
     const bytes = open ? sceneBytes() : copy?.bytes ?? await vanilla(m.file);
-    if ((await GF.saveFile(fileName(m.file), bytes)).backedUp) backedUp++;
+    if ((await GF.saveFile(name, bytes)).backedUp) res.backedUp++;
     if (copy || open) await putCopy(m.file, { bytes, pending: false });
     if (open) last = { file: m.file, bytes, pending: false };
+    res.added++;
   }
-  setStatus(S.match ? 'saved' : 'idle');
+  if (reopen) load(S.match, reopen, false);
+  else if (openBroken) await restoreFree();
+  else setStatus(S.match ? 'saved' : 'idle');
   emit('match-edited');
-  return { count: MATCHES.length, backedUp };
+  return res;
 }
 
 // Ask the browser again (from a click or key press) and write what waited.
