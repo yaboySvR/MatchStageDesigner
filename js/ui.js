@@ -21,6 +21,7 @@ import * as GF from './gamefolder.js';
 import * as M from './matches.js';
 import { initMatchesUI } from './matches-ui.js';
 import { FEATURES, applyFeatures, watchSwitch } from './features.js';
+import * as OV from './overlaps.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -45,6 +46,7 @@ export function initUI() {
   });
   buildEnvSeg();
   bindToggles();
+  bindOverlaps();
   bindCatalog();
   initSetsUI();
   bindToolbar();
@@ -154,6 +156,26 @@ function bindToggles() {
   bind('opt-stacking', 'stacking', () => tools.refreshHud());
   bind('opt-stage', 'stage', loadEnvModels);
   bind('opt-xray', 'xray', () => V.applyEnvState());
+  bind('opt-overlap', 'overlapWarn', OV.schedule);
+}
+
+// Status bar: how many props go into another one; a click selects them.
+function renderOverlaps() {
+  const n = OV.overlapping.size;
+  const btn = $('status-overlap');
+  btn.hidden = !n;
+  btn.textContent = `⚠ ${n} props overlap`;
+}
+
+function bindOverlaps() {
+  $('status-overlap').addEventListener('click', () => {
+    const ids = [...OV.overlapping];
+    if (!ids.length) return;
+    tools.selectOnly(ids);
+    tools.frameSelectionOrAll();
+  });
+  on('overlaps', renderOverlaps);
+  OV.initOverlaps();
 }
 
 // ---------------------------------------------------------------- catalog
@@ -283,7 +305,14 @@ function renderCard() {
       <div class="mirror-row"><span>Mirror a copy</span>
         <button type="button" class="text-btn" data-mirror="lr" title="Copy to the other side of the ring, left ↔ right as you look at it (M)">⇋ Left ↔ right</button>
         <button type="button" class="text-btn" data-mirror="fb" title="Copy to the other side of the ring, front ↔ back as you look at it (Shift+M)">⇵ Front ↔ back</button>
-      </div>`;
+      </div>${one ? '' : `
+      <div class="mirror-row"><span>Line up</span>
+        <button type="button" class="text-btn" data-align="lr" title="Put them in a straight row running left ↔ right as you look at it">⇋ Left ↔ right</button>
+        <button type="button" class="text-btn" data-align="fb" title="Put them in a straight row running front ↔ back as you look at it">⇵ Front ↔ back</button>
+      </div>
+      <div class="mirror-row"><span>Space evenly</span>
+        ${['lr', 'fb'].map((d) => `<button type="button" class="text-btn" data-dist="${d}" ${sel.length < 3 ? 'disabled' : ''} title="${sel.length < 3 ? 'Select 3 or more props' : `Equal distances ${d === 'lr' ? 'left ↔ right' : 'front ↔ back'} as you look at it: the two outermost stay, the rest spread between them`}">${d === 'lr' ? '⇋ Left ↔ right' : '⇵ Front ↔ back'}</button>`).join('')}
+      </div>`}`;
 
   const rotation = one ? `
       <div class="sec-title">Rotation<span>profile values · E handles</span></div>
@@ -349,6 +378,8 @@ function bindCard(card) {
   card.querySelector('[data-act="level"]')?.addEventListener('click', tools.levelSelection);
   card.querySelector('[data-act="drop"]').addEventListener('click', tools.dropSelected);
   card.querySelectorAll('[data-mirror]').forEach((b) => b.addEventListener('click', () => tools.mirrorSelected(b.dataset.mirror)));
+  card.querySelectorAll('[data-align]').forEach((b) => b.addEventListener('click', () => tools.alignSelected(b.dataset.align)));
+  card.querySelectorAll('[data-dist]').forEach((b) => b.addEventListener('click', () => tools.distributeSelected(b.dataset.dist)));
   card.querySelectorAll('[data-rot]').forEach((b) => b.addEventListener('click', () => tools.rotateBy(+b.dataset.rot)));
   card.querySelectorAll('[data-pivot]').forEach((b) => b.addEventListener('click', () => {
     S.pivot = b.dataset.pivot;
@@ -508,6 +539,31 @@ function syncGizmoButtons() {
   $('btn-physics').setAttribute('aria-pressed', String(S.physics));
 }
 
+// Screenshot: a clean picture of the view, copied to paste anywhere (the
+// message offers Download too); saved straight away where copying images
+// isn't allowed.
+async function takeScreenshot() {
+  settleNow();
+  const d = new Date();
+  const two = (n) => String(n).padStart(2, '0');
+  const when = `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}.${two(d.getMinutes())}.${two(d.getSeconds())}`;
+  const name = `PropSetDesigner - ${S.match ? M.matchName(S.match) : 'Free design'} - ${when}.png`;
+  const png = V.screenshot();
+  const save = async () => download(name, await png);
+  try {
+    if (!window.ClipboardItem || !navigator.clipboard?.write) throw new Error('no clipboard');
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+    toast('Screenshot copied: paste it anywhere (Ctrl+V)', { ms: 7000, action: { label: 'Download', onClick: save } });
+  } catch {
+    try {
+      await save();
+      toast(`Screenshot saved: ${name}`);
+    } catch (e) {
+      toast(`Couldn’t take the screenshot: ${e.message}`, { error: true });
+    }
+  }
+}
+
 function bindToolbar() {
   $('btn-view-top').addEventListener('click', () => V.viewTop());
   $('btn-view-persp').addEventListener('click', () => V.viewPerspective());
@@ -516,6 +572,7 @@ function bindToolbar() {
   $('btn-undo').addEventListener('click', tools.doUndo);
   $('btn-redo').addEventListener('click', tools.doRedo);
   $('btn-help').addEventListener('click', () => $('dlg-help').showModal());
+  $('btn-shot').addEventListener('click', takeScreenshot);
   $('btn-gizmo-move').addEventListener('click', () => tools.setGizmoMode('move'));
   $('btn-gizmo-rotate').addEventListener('click', () => tools.setGizmoMode('rotate'));
   $('btn-space').addEventListener('click', () => tools.setGizmoSpace(S.space === 'local' ? 'world' : 'local'));

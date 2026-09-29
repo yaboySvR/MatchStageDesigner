@@ -219,6 +219,14 @@ export function setTarget(target, { mode: m = 'move' } = {}) {
 
 export const isVisible = () => root.visible;
 
+// The handles, drag guide and turn wedge hidden for a moment (a screenshot).
+// Returns a function that puts them back as they were.
+export function hideForPicture() {
+  const was = [root.visible, guide.visible, sweep.visible];
+  root.visible = guide.visible = sweep.visible = false;
+  return () => { [root.visible, guide.visible, sweep.visible] = was; };
+}
+
 const _q = new THREE.Quaternion();
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();

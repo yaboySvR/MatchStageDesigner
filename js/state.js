@@ -17,6 +17,7 @@ export const S = {
   stacking: false,
   stage: false,
   xray: false,
+  overlapWarn: true,       // props going into each other show red
 
   // { id, key, state, x, y, z, rx, ry, rz }
   // x, y, z: Blender world position (same as the profile).

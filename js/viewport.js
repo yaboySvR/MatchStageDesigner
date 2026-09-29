@@ -25,6 +25,8 @@ const MAT = {
   prop: new THREE.MeshStandardMaterial({ color: 0xd9cfc0, roughness: 0.6, metalness: 0.05, ...matOpts }),
   sel: new THREE.MeshStandardMaterial({ color: 0xffb347, emissive: 0x7a3300, roughness: 0.5, ...matOpts }),
   hover: new THREE.MeshStandardMaterial({ color: 0xf1e8ff, emissive: 0x2c1450, roughness: 0.5, ...matOpts }),
+  bad: new THREE.MeshStandardMaterial({ color: 0xff6b7a, emissive: 0x5a0010, roughness: 0.55, ...matOpts }),   // overlapping
+  selBad: new THREE.MeshStandardMaterial({ color: 0xff5f3d, emissive: 0x7a1000, roughness: 0.5, ...matOpts }), // selected + overlapping
   ghost: new THREE.MeshBasicMaterial({ color: 0x8be9ff, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide }),
 };
 const ENV_STYLE = {
@@ -193,7 +195,23 @@ function place(obj, p) {
 }
 
 let hoverId = null;
-const materialFor = (id) => (S.selected.has(id) ? MAT.sel : id === hoverId ? MAT.hover : MAT.prop);
+let overlapIds = new Set(); // props going into another one (overlaps.js)
+const materialFor = (id) => {
+  if (S.selected.has(id)) return overlapIds.has(id) ? MAT.selBad : MAT.sel;
+  if (id === hoverId) return MAT.hover;
+  return overlapIds.has(id) ? MAT.bad : MAT.prop;
+};
+
+export function setOverlaps(ids) {
+  overlapIds = ids;
+  for (const [id, mesh] of propMeshes) mesh.material = materialFor(id);
+  requestRender();
+}
+
+// A prop's placement as a matrix (the same one its mesh gets).
+export function propMatrix(p) {
+  return new THREE.Matrix4().compose(new THREE.Vector3(p.x, p.y, p.z), rotationQuat(p.rx, p.ry, p.rz, new THREE.Quaternion()), new THREE.Vector3(1, 1, 1));
+}
 
 // Props whose model is still downloading get one wait per model, and all the
 // waits share one queued re-sync. (Registering a re-sync per prop per call
@@ -320,6 +338,40 @@ export function setDropGuides(items) {
     ring.scale.setScalar(it.r);
   });
   requestRender();
+}
+
+// ---------------------------------------------------------------- screenshots
+
+// A picture of the view as it is, without the editing aids (handles, ghosts,
+// drop guides, and the selection / hover / overlap colors), about longEdge
+// pixels on its long side. Everything happens in one go, so the screen never
+// shows the big frame. Resolves to a PNG Blob.
+export function screenshot(longEdge = 2560) {
+  const w = host.clientWidth, h = host.clientHeight;
+  const k = Math.min(4, Math.max(1, longEdge / Math.max(w, h)));
+  const W = Math.round(w * k), H = Math.round(h * k);
+  const showHandles = G.hideForPicture();
+  const aids = [...ghostMeshes, ...dropGuides.flatMap((g) => [g.line, g.ring])].filter((o) => o.visible);
+  for (const o of aids) o.visible = false;
+  for (const mesh of propMeshes.values()) mesh.material = MAT.prop;
+  const ratio = renderer.getPixelRatio();
+  renderer.setPixelRatio(1);
+  renderer.setSize(W, H, false);
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+  const png = new Promise((resolve, reject) => {
+    renderer.domElement.toBlob((b) => (b ? resolve(b) : reject(new Error('the picture could not be made'))), 'image/png');
+  });
+  renderer.setPixelRatio(ratio);
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  showHandles();
+  for (const o of aids) o.visible = true;
+  for (const [id, mesh] of propMeshes) mesh.material = materialFor(id);
+  renderer.render(scene, camera);
+  return png;
 }
 
 // ---------------------------------------------------------------- thumbnails

@@ -125,7 +125,34 @@ node web/tools/rotation-check/verify_rotation.mjs
   (rx, −ry, −rz) across X and the same turned 180° across Y (props that are
   left-right symmetric look exactly mirrored), and with auto snapping a copy
   sits on the surface under it. Props on the center line are skipped.
+- **Line up / Space evenly** (the panel, with 2 or more props selected):
+  *Line up* puts them in a straight row running left ↔ right or front ↔ back
+  as you look at it (snapped to X or Y, like Mirror); each prop takes the
+  middle value across the row. *Space evenly* (3 or more) keeps the two
+  outermost props where they are and gives the rest equal distances between
+  centers, in their current order. Heights follow the surface under each
+  prop, as in any move, and each click is one undo step. Code:
+  `alignSelected` / `distributeSelected` in `js/tools.js`.
 - G / R still work Blender-style (click to finish, Esc cancels).
+
+## Screenshot
+
+The camera button in the toolbar takes a picture of the view as it is, about
+2560 px wide, without the editing aids (handles, ghosts, drop guides, and the
+selection, hover and overlap colors). It's copied to the clipboard to paste
+anywhere (Discord, etc.); *Download* in the message saves it as a PNG named
+after the match and the time. Where the browser doesn't allow copying
+images, it's saved straight away. Code: `screenshot()` in `js/viewport.js`.
+
+## Overlap warning
+
+With *Overlap warning* on (Arena panel, on by default), props that go into
+each other turn red, and the bottom bar counts them; clicking the count
+selects them. Props that only touch, stacked or side by side, aren't
+flagged: a prop has to go about 1.5 cm into another. The check runs a moment
+after each change, comparing the actual meshes (not just their boxes), with
+[three-mesh-bvh](https://github.com/gkjohnson/three-mesh-bvh) loaded from the
+CDN the first time. Screenshots never show the red. Code: `js/overlaps.js`.
 
 ## Walk navigation
 

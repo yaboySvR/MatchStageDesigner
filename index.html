@@ -15,7 +15,8 @@
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
       "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-      "@dimforge/rapier3d-compat": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.19.3/rapier.mjs"
+      "@dimforge/rapier3d-compat": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.19.3/rapier.mjs",
+      "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.15/build/index.module.js"
     }
   }
   </script>
@@ -48,6 +49,7 @@
         <label class="toggle"><input type="checkbox" id="opt-stacking"><span></span>Stacking</label>
         <label class="toggle"><input type="checkbox" id="opt-stage"><span></span>Entrance stage</label>
         <label class="toggle"><input type="checkbox" id="opt-xray"><span></span>X-ray arena</label>
+        <label class="toggle" title="Props that go into each other turn red, and the bottom bar counts them"><input type="checkbox" id="opt-overlap" checked><span></span>Overlap warning</label>
       </div>
     </section>
 
@@ -107,6 +109,9 @@
       <button class="chip" id="btn-undo" title="Undo (Ctrl+Z)">↶</button>
       <button class="chip" id="btn-redo" title="Redo (Ctrl+Shift+Z)">↷</button>
       <span class="sep"></span>
+      <button class="chip icon" id="btn-shot" title="Screenshot: copies a picture of the view (no handles or highlights) to paste anywhere, or download it" aria-label="Screenshot">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
       <button class="chip icon" id="btn-settings" title="Settings: walk keys and mouse speed" aria-label="Settings">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
@@ -124,6 +129,7 @@
     </div>
     <div id="statusbar">
       <span id="status-coords">X — Y — Z —</span>
+      <button type="button" class="status-warn" id="status-overlap" title="Props going into each other (they show red). Click to select them" hidden></button>
       <span id="status-env"></span>
     </div>
 
@@ -301,6 +307,7 @@
           <dt>Shift + drag</dt><dd>Pan</dd>
           <dt>Wheel</dt><dd>Zoom</dd>
           <dt>T · F · Home</dt><dd>Top view · frame selection · frame all</dd>
+          <dt>Camera button (toolbar)</dt><dd>Screenshot of the view, without handles or highlights: copied to paste anywhere (Ctrl+V), and Download in the message saves it as a file</dd>
         </dl>
         <h4>Walk navigation</h4>
         <dl id="help-walk"><!-- the keys as set, from settings-ui.js --></dl>
@@ -357,6 +364,7 @@
           <dt>G · R</dt><dd>Blender-style move · rotate, click to finish</dd>
           <dt>Ctrl + D</dt><dd>Duplicate next to the original</dd>
           <dt>M · Shift + M</dt><dd>Mirror a copy of the selection to the other side of the ring: left ↔ right · front ↔ back, as you look at it</dd>
+          <dt>Line up · Space evenly</dt><dd>In the panel, with 2 or more props selected: put them in a straight row, or (3 or more) give them equal distances, left ↔ right or front ↔ back as you look at it. The two outermost stay put when spacing</dd>
           <dt>Ctrl + G</dt><dd>Save the selection as a reusable set</dd>
           <dt>Delete</dt><dd>Delete</dd>
           <dt>Ctrl + A · Esc</dt><dd>Select all · deselect</dd>
@@ -372,6 +380,7 @@
         </dl>
         <h4>Snapping</h4>
         <p class="muted">With Auto snapping on, props sit on the ring (Z 106), the floor (Z 0), the entrance stage, or the cell / ambulance roof. Stacking lets props sit on top of other props, one level high.</p>
+        <p class="muted">Overlap warning (Arena panel): props that go into each other turn red, and the bottom bar counts them (click it to select them). Props that only touch, stacked or side by side, are fine.</p>
       </div>
     </div>
     <div class="dlg-actions"><button class="btn primary" value="ok">Got it</button></div>

@@ -712,6 +712,55 @@ export function mirrorSelected(which) {
   toast(`Mirrored ${n} prop${n === 1 ? '' : 's'} to the other side${skipped ? ` · ${skipped} on the center line skipped` : ''} · Ctrl+Z to undo`);
 }
 
+// ---------------------------------------------------------------- arrange
+
+// World axis ('x' / 'y') of a view axis from V.viewAxes().
+const axisOf = (v) => (v[0] !== 0 ? 'x' : 'y');
+
+// Line the selection up in a row running left ↔ right ('lr') or front ↔ back
+// ('fb') as you look at it (snapped to X or Y, like mirroring): every prop
+// takes the middle value across the row. Heights follow the surface under
+// each prop, as in any move. One undo step.
+export function alignSelected(dir) {
+  P.settleNow();
+  const props = store.selectedProps();
+  if (props.length < 2 || op || gdrag) return;
+  const { forward, right } = V.viewAxes();
+  const k = axisOf(dir === 'lr' ? forward : right);
+  const mid = props.reduce((s, p) => s + p[k], 0) / props.length;
+  store.checkpoint();
+  placeItems(makeItems(props), (it) => {
+    it.p.x = it.sx;
+    it.p.y = it.sy;
+    it.p[k] = mid;
+  });
+  store.changed();
+  transformed();
+}
+
+// Even spacing left ↔ right ('lr') or front ↔ back ('fb') as you look at it:
+// the two outermost props stay put, and the rest, in their current order, get
+// equal distances between their centers. One undo step.
+export function distributeSelected(dir) {
+  P.settleNow();
+  const props = store.selectedProps();
+  if (props.length < 3 || op || gdrag) return;
+  const { forward, right } = V.viewAxes();
+  const k = axisOf(dir === 'lr' ? right : forward);
+  const order = [...props].sort((a, b) => a[k] - b[k]);
+  const lo = order[0][k];
+  const step = (order[order.length - 1][k] - lo) / (order.length - 1);
+  const at = new Map(order.map((p, i) => [p, lo + i * step]));
+  store.checkpoint();
+  placeItems(makeItems(props), (it) => {
+    it.p.x = it.sx;
+    it.p.y = it.sy;
+    it.p[k] = at.get(it.p);
+  });
+  store.changed();
+  transformed();
+}
+
 // Undo during a physics fall cancels the fall.
 export function doUndo() {
   if (op || gdrag) return;
