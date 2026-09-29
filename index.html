@@ -30,8 +30,7 @@
       <button class="icon-btn sidebar-close" id="btn-sidebar-close" title="Close panel" aria-label="Close panel">✕</button>
     </header>
 
-    <!-- Switched off for now (js/features.js): the Match panel. -->
-    <section class="panel" id="match-panel" data-feature="matches" hidden>
+    <section class="panel" id="match-panel">
       <h2>Match</h2>
       <div class="match-row">
         <button type="button" class="icon-btn" id="match-prev" title="Previous match" aria-label="Previous match">◀</button>
@@ -324,6 +323,13 @@
           <dt data-feature="jsfbExport jsfbImport" hidden>Game prop set (.jsfb)</dt><dd data-feature="jsfbExport jsfbImport" hidden>Import a <b>PropsSet_*.jsfb</b> to open that match type's props (one named like a match opens in that match); Export → Game prop set saves it. It goes in <b>BakeMe\Environment\PropsSet</b>, then bake. Props the designer can't show stay in the file</dd>
           <dt data-feature="jsfbExport" hidden>Ctrl + S</dt><dd data-feature="jsfbExport" hidden>In a match: save it now. Otherwise, Chrome / Edge: save the open game file straight into the game folder (picked once; the original is kept as .bak), or open Export</dd>
           <dt data-feature-off="jsfbExport">Ctrl + S</dt><dd data-feature-off="jsfbExport">Open Export (inside it: Download)</dd>
+        </dl>
+        <h4 data-feature-off="matches">Matches</h4>
+        <dl data-feature-off="matches">
+          <dt>Match (top of the panel)</dt><dd>Pick a match to design its props. It starts with the game's default props for that match, and your changes are remembered in this browser, separately for each match</dd>
+          <dt>◀ · ▶</dt><dd>Previous · next match</dd>
+          <dt>Free design</dt><dd>The scene not tied to a match; it's kept while you work on matches</dd>
+          <dt>Export in a match</dt><dd>The profile is named after the match. Some matches have game props the site doesn't show (the ambulance, the casket…): they stay as they are and go into the profile, because the match needs them</dd>
         </dl>
         <h4 data-feature="matches" hidden>Matches</h4>
         <dl data-feature="matches" hidden>

@@ -197,9 +197,19 @@ anywhere.
 
 ## Matches
 
-> **Switched off for now.** The Match panel is hidden (`matches: false` in
-> `js/features.js`); the code below is all still there. While it's off, a
-> match left open from an earlier visit goes back to free design.
+The *Match* panel at the top of the sidebar works in two setups (`matches` in
+`js/features.js`):
+
+- **For everyone** (`matches: false`, the default): pick one of the 17 match
+  types, or *Free design*. Each match starts with the game's default props
+  for it (read from `data/propsets/`), and your changes are remembered in
+  this browser, separately for each match (IndexedDB `ppg-match-layouts`;
+  never a folder, never a file to handle). The arena follows the match.
+  Export inside a match names the profile after it, and keeps the game props
+  the site doesn't show (the ambulance, the casket…), which the match needs.
+- **With the game tools** (`matches: true`): everything below, on the game's
+  `PropsSet_*.jsfb` files and a connected PropsSet folder. Those matches live
+  in their own database (`ppg-matches`): the two setups never share a match.
 
 Each match type has its own prop set in the game (`PropsSet_<Mode>.jsfb`).
 The *Match* panel at the top of the sidebar edits them one at a time

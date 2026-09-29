@@ -4,6 +4,9 @@
 // which folder to pick, then which match files are there (they get opened
 // from it, or replaced if the user picks that), and nothing is written until
 // the user confirms.
+//
+// In the browser setup ({ mode: 'browser' }) there's no folder at all: each
+// match is simply remembered in the browser, and nothing mentions files.
 
 import { S, on } from './state.js';
 import * as M from './matches.js';
@@ -14,19 +17,14 @@ import { toast } from './toast.js';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-let hooks;          // from ui.js: { setEnv, frameAll, setOpened }
-let busy = false;   // a switch is under way
-let chosen = null;  // the folder picked in the connect dialog, until confirmed
+let hooks;           // from ui.js: { setEnv, frameAll, setOpened }
+let busy = false;    // a switch is under way
+let chosen = null;   // the folder picked in the connect dialog, until confirmed
+let browser = false; // the browser setup: no folder, no files
 
-export function initMatchesUI(h, { enabled = true } = {}) {
+export function initMatchesUI(h, { mode = 'game' } = {}) {
   hooks = h;
-  if (!enabled) {
-    // Switched off for now (features.js): the panel stays hidden, and a match
-    // left open last time goes back to free design (it keeps its saved copy).
-    on('match', applyMatch);
-    if (S.match) M.openMatch(null).catch((e) => toast(`Couldn’t leave the match: ${e.message}`, { error: true }));
-    return;
-  }
+  browser = mode === 'browser';
   const sel = $('match-select');
   sel.innerHTML = '<option value="">Free design</option>'
     + M.MATCHES.map((m) => `<option value="${m.file}">${esc(m.name)}</option>`).join('');
@@ -38,14 +36,14 @@ export function initMatchesUI(h, { enabled = true } = {}) {
     if (act === 'connect') openConnect();
     if (act === 'reconnect') reconnect();
   });
-  bindConnectDialog();
+  if (!browser) bindConnectDialog();
 
   on('match', applyMatch);
   on('match-status', renderStatus);
   on('match-edited', renderOptions);
   sync();
   M.initMatches()
-    .catch((e) => toast(`Matches: ${e.message}`, { error: true }))
+    .catch((e) => toast(browser ? 'Couldn’t load the open match; try reloading the page' : `Matches: ${e.message}`, { error: true }))
     .finally(() => { renderStatus(); renderOptions(); });
 }
 
@@ -56,7 +54,7 @@ async function go(file) {
   try {
     await M.openMatch(file);
   } catch (e) {
-    toast(`Couldn’t open that match: ${e.message}`, { error: true, ms: 6000 });
+    toast(browser ? 'Couldn’t open that match right now; try again' : `Couldn’t open that match: ${e.message}`, { error: true, ms: 6000 });
   } finally {
     busy = false;
     sync();
@@ -100,9 +98,12 @@ async function renderStatus() {
   const dir = await M.connectedFolder();
   const allowed = dir && (await GF.access()) === 'granted';
   const { state, detail } = M.saveStatus();
-  const saved = state === 'saving' ? 'Saving…' : state === 'error' ? `Couldn’t save: ${esc(detail)}` : 'Saved';
+  const failed = browser ? 'Couldn’t save this match in the browser' : `Couldn’t save: ${esc(detail)}`;
+  const saved = state === 'saving' ? 'Saving…' : state === 'error' ? failed : 'Saved';
   let line;
-  if (dir && allowed) {
+  if (browser) {
+    line = S.match ? (saved === 'Saved' ? 'Saved in this browser' : saved) : 'Pick a match to design its props';
+  } else if (dir && allowed) {
     line = `PropsSet folder <b>${esc(dir.name)}</b>${S.match ? ` · ${saved}` : ''}`;
   } else if (dir) {
     line = '<button type="button" class="text-btn" data-act="reconnect">Reconnect PropsSet folder</button>'

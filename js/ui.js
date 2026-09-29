@@ -34,9 +34,10 @@ function iconHtml(url, name) {
 export function initUI() {
   applyFeatures();
   watchSwitch(async (on) => {
-    // Everything saved first: the page comes back with the new switch.
+    // Everything saved first, and back in free design (the two setups keep
+    // their matches apart): the page comes back with the new switch.
     try {
-      if (S.match) await M.saveNow({ settle: true });
+      if (S.match) await M.openMatch(null);
       store.save();
       sessionStorage.setItem('ppg.gfNote', on ? 'on' : 'off');
     } catch { /* reload anyway */ }
@@ -48,11 +49,14 @@ export function initUI() {
   initSetsUI();
   bindToolbar();
   initSettingsUI();
+  // Without the game tools, matches are remembered in the browser only (their
+  // own database, no folder).
+  if (!FEATURES.matches) M.configure({ db: 'ppg-match-layouts', folder: false });
   initMatchesUI({
     setEnv,
     frameAll: () => tools.frameSelectionOrAll(true),
     setOpened: (name, bytes) => { opened = { name, bytes }; },
-  }, { enabled: FEATURES.matches });
+  }, { mode: FEATURES.matches ? 'game' : 'browser' });
   bindProfile();
   bindCustomDialog();
   bindManageDialog();
@@ -801,13 +805,21 @@ function bindProfile() {
     if (!S.props.length && !S.unknownLines.length && !S.jsfb) return toast('Place some props first');
     $('exp-selected').checked = false;
     const n = unrecognized().length;
-    $('exp-unknown-label').textContent = `Keep ${n} unrecognized entr${n === 1 ? 'y' : 'ies'} from imported files`;
+    // In a match those entries are the game's own props the site can't show.
+    $('exp-unknown-label').textContent = S.match && !S.unknownLines.length
+      ? `Keep the ${n} game prop${n === 1 ? '' : 's'} the site doesn’t show (the match needs ${n === 1 ? 'it' : 'them'})`
+      : `Keep ${n} unrecognized entr${n === 1 ? 'y' : 'ies'} from imported files`;
     // A scene opened from a game file saves back to it by default.
     if (S.jsfb && FEATURES.jsfbExport) {
       expNames[expFormat] = $('exp-name').value;
       expNames.jsfb = S.jsfb.name.replace(/\.jsfb$/i, '');
       expFormat = 'jsfb';
       $('exp-name').value = expNames.jsfb;
+    }
+    // Inside a match, a profile is named after the match.
+    if (S.match) {
+      if (expFormat === 'profile') $('exp-name').value = M.matchName(S.match);
+      else expNames.profile = M.matchName(S.match);
     }
     setExportFormat(expFormat);
     dlg.showModal();

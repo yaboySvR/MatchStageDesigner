@@ -1,6 +1,11 @@
 // Matches: the game's prop set for each match type (propset.js MATCHES),
 // edited one at a time from the Match panel (matches-ui.js).
 //
+// Two setups (configure(), once, before anything else): the game one, with
+// everything below; and a browser-only one, with its own database, that never
+// reads or writes a folder: each match starts with the vanilla file's props
+// and is remembered in the browser. The two never share a match.
+//
 // Where a match's file comes from:
 // - a connected PropsSet folder (Chrome / Edge): that folder's file;
 // - otherwise this browser's copy, once the match was edited here;
@@ -31,10 +36,17 @@ import { MATCHES, matchOf, readPropSet, writePropSet } from './propset.js';
 
 export { MATCHES };
 
-const DB = 'ppg-matches';
+let DB = 'ppg-matches';
+let folderOn = true;      // may a connected PropsSet folder be used at all
 const COPIES = 'copies';  // match file -> { bytes, pending }
 const META = 'meta';      // 'folder' -> the connected folder, 'free' -> { scene, env }
 const SAVE_DELAY = 600;   // ms after the last change
+
+// Which database the matches live in, and whether a folder may be used.
+export function configure({ db = 'ppg-matches', folder = true } = {}) {
+  DB = db;
+  folderOn = folder;
+}
 
 export const matchName = (file) => MATCHES.find((m) => m.file === file)?.name ?? file;
 export const fileName = (file) => `${file}.jsfb`;
@@ -101,6 +113,7 @@ export function vanilla(file) {
 
 // The connected folder: the remembered game folder, if it was connected here.
 export async function connectedFolder() {
+  if (!folderOn) return null;
   const [dir, mine] = await Promise.all([GF.folder(), getMeta('folder')]);
   if (!dir || !mine) return null;
   try {
