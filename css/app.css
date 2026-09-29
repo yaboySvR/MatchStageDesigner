@@ -352,6 +352,9 @@ body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: no
 .mirror-row { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 4px; margin-top: 2px; font-size: 12px; }
 .mirror-row > span { color: var(--muted); margin-right: 2px; }
 #dlg-welcome { max-width: 460px; }
+.help-more { margin: -4px 0 10px; font-size: 12px; }
+.help-more summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.help-more dl { margin-top: 8px; }
 .welcome-list { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; margin: 4px 0 0; font-size: 13px; }
 .welcome-list dt { font-weight: 700; }
 .welcome-list dd { margin: 0; color: var(--muted); }
