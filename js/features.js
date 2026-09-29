@@ -28,9 +28,16 @@ const allOn = (names) => names.split(/\s+/).every((n) => FEATURES[n]);
 
 // Show or hide the page parts tagged data-feature="name …" (shown while all
 // those features are on) or data-feature-off="name" (shown while it's off).
+// Tooltips that change with a feature keep their text for while it's off in
+// title, and the one for while it's on in data-title-on (data-title-feature
+// names it).
 export function applyFeatures(root = document) {
   for (const el of root.querySelectorAll('[data-feature]')) el.hidden = !allOn(el.dataset.feature);
   for (const el of root.querySelectorAll('[data-feature-off]')) el.hidden = allOn(el.dataset.featureOff);
+  for (const el of root.querySelectorAll('[data-title-on]')) {
+    el.dataset.titleOff ??= el.title;
+    el.title = allOn(el.dataset.titleFeature) ? el.dataset.titleOn : el.dataset.titleOff;
+  }
 }
 
 // ---------------------------------------------------------------- local switch

@@ -869,10 +869,7 @@ function bindProfile() {
   // The plain upload dialog: it opens files from anywhere. (The folder-access
   // picker would refuse files under Program Files, Windows or AppData.)
   $('btn-import').addEventListener('click', () => $('file-import').click());
-  if (!FEATURES.jsfbImport) {
-    $('file-import').accept = '.propsprofile,.txt';
-    $('btn-import').title = 'Add the props of a .propsprofile';
-  }
+  if (!FEATURES.jsfbImport) $('file-import').accept = '.propsprofile,.txt';
   $('file-import').addEventListener('change', (e) => {
     const file = e.target.files[0];
     e.target.value = '';
