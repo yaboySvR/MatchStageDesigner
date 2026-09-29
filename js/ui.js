@@ -85,7 +85,7 @@ export function initUI() {
   try {
     if (!localStorage.getItem('ppg.seenHelp')) {
       localStorage.setItem('ppg.seenHelp', '1');
-      $('dlg-help').showModal();
+      $('dlg-welcome').showModal(); // short first look; the full list is under ?
     }
   } catch { /* storage unavailable */ }
 }
@@ -572,6 +572,10 @@ function bindToolbar() {
   $('btn-undo').addEventListener('click', tools.doUndo);
   $('btn-redo').addEventListener('click', tools.doRedo);
   $('btn-help').addEventListener('click', () => $('dlg-help').showModal());
+  $('welcome-controls').addEventListener('click', () => {
+    $('dlg-welcome').close();
+    $('dlg-help').showModal();
+  });
   $('btn-shot').addEventListener('click', takeScreenshot);
   $('btn-gizmo-move').addEventListener('click', () => tools.setGizmoMode('move'));
   $('btn-gizmo-rotate').addEventListener('click', () => tools.setGizmoMode('rotate'));

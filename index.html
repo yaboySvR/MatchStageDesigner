@@ -296,6 +296,24 @@
   </form>
 </dialog>
 
+<dialog id="dlg-welcome" class="dlg">
+  <form method="dialog">
+    <h3>Welcome to PropSetDesigner</h3>
+    <p class="muted">Design arena prop layouts and export them as a .propsprofile.</p>
+    <dl class="welcome-list">
+      <dt>Place</dt><dd>Click a prop on the left, then click in the arena (or hold Q for the prop wheel)</dd>
+      <dt>Look around</dt><dd>Right-drag to orbit, Shift + drag to pan, wheel to zoom</dd>
+      <dt>Edit</dt><dd>Click a prop to select it; the panel on the right moves, turns and arranges it</dd>
+      <dt>Match</dt><dd>Pick a match at the top: each one remembers its own layout</dd>
+      <dt>Save</dt><dd>Export when you're done. Everything also saves in this browser by itself</dd>
+    </dl>
+    <div class="dlg-actions">
+      <button class="btn" type="button" id="welcome-controls">All controls</button>
+      <button class="btn primary" value="ok">Start designing</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlg-help" class="dlg wide">
   <form method="dialog">
     <h3>Controls</h3>
