@@ -20,7 +20,7 @@ import { keyId } from './settings.js';
 import * as GF from './gamefolder.js';
 import * as M from './matches.js';
 import { initMatchesUI } from './matches-ui.js';
-import { FEATURES, applyFeatures } from './features.js';
+import { FEATURES, applyFeatures, watchSwitch } from './features.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -33,6 +33,15 @@ function iconHtml(url, name) {
 
 export function initUI() {
   applyFeatures();
+  watchSwitch(async (on) => {
+    // Everything saved first: the page comes back with the new switch.
+    try {
+      if (S.match) await M.saveNow({ settle: true });
+      store.save();
+      sessionStorage.setItem('ppg.gfNote', on ? 'on' : 'off');
+    } catch { /* reload anyway */ }
+    location.reload();
+  });
   buildEnvSeg();
   bindToggles();
   bindCatalog();
@@ -58,6 +67,14 @@ export function initUI() {
   renderCatalog();
   renderCard();
   refreshCounts();
+
+  try {
+    const note = sessionStorage.getItem('ppg.gfNote');
+    if (note) {
+      sessionStorage.removeItem('ppg.gfNote');
+      toast(`.jsfb tools ${note === 'on' ? 'on' : 'off'}`);
+    }
+  } catch { /* storage unavailable */ }
 
   try {
     if (!localStorage.getItem('ppg.seenHelp')) {
