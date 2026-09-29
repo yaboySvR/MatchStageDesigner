@@ -1,364 +1,62 @@
 # PropSetDesigner
 
-Browser version of the Prop Profile Generator Blender add-on. Place props in the arena and export a
-`.propsprofile`. The file format and coordinates match the add-on's export exactly.
-It can also open and save the game's own prop set files (`PropsSet_*.jsfb`)
-directly; see [Game prop sets](#game-prop-sets-jsfb).
+Design WWE 2K26 arena prop layouts in the browser and export them as
+`.propsprofile` files, the same format as the Prop Profile Generator Blender
+add-on.
 
-It is a static site: plain HTML/JS, with three.js loaded from a CDN (and the
-Rapier physics engine, the first time physics is used). There is no build step
-for users.
+Live at **https://propseteditor.com**.
+
+## Features
+
+- **Place props** from the catalog or the prop wheel (hold Q), in lines or
+  stacks, snapped to the ring, floor and stage.
+- **Edit** with move/rotate handles, number fields, arrow-key nudges,
+  duplicate, mirror, line up and space evenly.
+- **Physics**: drop props and let them land and topple.
+- **Walk mode**: Blender-style first-person navigation (Shift+`).
+- **Matches**: one remembered layout per match type, starting from the
+  game's defaults.
+- **Sets**: save a group of props, stamp copies, share it as a code.
+- **Overlap warning**: props that clip into each other turn red.
+- **Screenshot**: copy a clean picture of the view.
+- Everything autosaves in the browser. Press **?** in the site for all
+  controls.
 
 ## Run locally
 
-Browsers block `fetch` on `file://` pages, so serve the folder over HTTP:
+Browsers block `file://` pages, so serve the folder:
 
 ```
 python web/tools/dev_server.py
 ```
 
-(`python -m http.server 8765 --directory web` works too, but the browser may
-keep old copies of edited JS files; `dev_server.py` turns caching off.)
-
 Then open http://localhost:8765.
 
-## Host it
+## Host
 
-Upload the `web/` folder to any static host, such as GitHub Pages, Netlify,
-Cloudflare Pages, or itch.io (HTML project). The assets total about 17 MB.
+It's a static site with no build step: upload `web/` to any static host.
+three.js, Rapier and three-mesh-bvh load from a CDN.
 
-## Update props / models
+## Update props
 
-`web/assets` and `web/data/catalog.json` are generated from the add-on's own
-data:
-
-- `props/Prop_Models/props.json` (prop IDs, states, labels). `EXCLUDE_KEYS` in
-  the build script leaves props out; AT / AT_COVER (commentary table) are excluded.
-- `props/Prop_Models/*.obj` (converted to compact `.bin` meshes)
-- `icons/*.png` (resized to 256px WebP)
-- `ICON_MAP` / `ICON_MAP_ALT` in `tools/wheel_tool.py`
-
-After changing any of these, rebuild (needs Python 3 + Pillow):
+Prop models, icons and `data/catalog.json` are generated from the add-on's
+data (`props/Prop_Models`, `icons/`):
 
 ```
 python web/tools/build_assets.py
 ```
 
-Only changed files are reconverted. Output file names are lowercase, so
-case-sensitive hosts work even though `props.json` mixes cases.
+## Code
 
-## Coordinates and rotation
-
-The web app uses the add-on's convention, and it was checked against the real
-add-on running in Blender:
-
-- **Position**: `x, y, z` are Blender world coordinates (Z up), written as-is.
-  The 3D scene itself runs in Blender's Z-up space (meshes get the OBJ
-  importer's axis conversion when they load), so no other axis swap exists.
-- **Rotation**: the add-on imports `rx, ry, rz` as a Blender Euler in `XZY`
-  order with angles `(rx, ry, -rz)`, so `R = Ry(ry) · Rz(-rz) · Rx(rx)`.
-  The web app builds exactly that matrix (`js/rotation.js`). It never runs the
-  angles through three.js Euler orders.
-- **Lossless editing**: the file's `rx, ry, rz` are stored verbatim. Moving a
-  prop never touches its rotation. Turning an upright prop (no RY) around the
-  vertical only changes `rz`.
-- **Free rotation** (gizmo rings, trackball, turning a tilted prop): the new
-  orientation is turned back into angles with a port of Blender's
-  `matrix.to_euler('XZY')`, so the numbers are the ones the add-on would write
-  for that orientation. Checked against Blender for 243 rotations.
-- **Where the add-on writes different numbers**: the add-on re-derives angles
-  with `matrix.to_euler('XZY')` on export. For some props that gives different
-  numbers for the same orientation: `rz` of 270 becomes -90, 180 becomes -180,
-  `(10, 20, -90)` becomes `(30, 0, -90)`, and `(170, 10, 100)` becomes
-  `(-10, -170, 80)`. The web app keeps the original numbers.
-- **Unrecognized lines** (unknown prop ID / state, and the excluded AT /
-  AT_COVER) are kept byte-for-byte and re-exported. The add-on drops unknown
-  lines.
-
-Re-run the check after changing any of this (Blender 4+ and Node):
-
-```
-blender -b --factory-startup --python web/tools/rotation-check/blender_truth.py -- . web/tools/rotation-check
-node web/tools/rotation-check/verify_rotation.mjs
-```
-
-## What maps to what
-
-| Add-on | Web |
-| --- | --- |
-| Import Default Props | Loads automatically |
-| Environment dropdown | Ring / EC / HIAC / WG / Amb. buttons (arena models load on first use) |
-| Enable Stage | Entrance stage toggle |
-| Auto Snapping / Enable Stacking | Same toggles, same rules (ring Z 106, floor 0, stage top, cell and ambulance roofs, one-level stacking) |
-| Add Prop (line tool) | Click a tile, then click to place or drag for a line. Shift locks to 45°. Wheel while dragging changes spacing. With Stacking on, drag upward to stack. |
-| Q prop wheel | Hold Q over the viewport, release to pick. Multi-state props show their second state further out. |
-| Cardinal rotation buttons | Rotation ring around the selection, dial and ±15° / ±90° buttons in the panel, `[` `]` keys |
-| Export / Import .propsprofile | Export dialog (download, copy, append to an existing file) and Import (or drag and drop a file) |
-| Add Custom Prop | Switched off for now (the *+ Custom* button is hidden; the code is still in `js/ui.js` and `js/catalog.js`). |
-| Modify Prop List | List. Your choices are saved in this browser. |
-
-## Moving and rotating
-
-- **Handles**: toolbar *Move* (W) shows arrows for X (red), Y (green) and
-  Z (blue, up) plus a small square for sliding on the ground; *Rotate* (E)
-  shows a ring per axis, and dragging inside the rings tumbles the prop
-  freely. Rotation snaps to 15° (hold Shift for free), moves snap to a 10
-  grid with Ctrl, Esc or right-click cancels. A label next to the cursor
-  shows the value while dragging. *World / Local* switches the handle axes
-  between the world and the selected prop's own axes. The handles are drawn
-  by `js/gizmo.js` at a fixed size on screen.
-- **Move** also by dragging a prop, arrow keys (5 units; Shift 25, Alt 1;
-  relative to the camera, always along X or Y), PageUp / PageDown for height,
-  or the X, Y, Z fields (type, or drag the letter sideways). With auto
-  snapping on, a lifted prop keeps its height above whatever surface it moves
-  over.
-- **Rotate** also with `[` / `]` (15° around the vertical; Shift 90°, Alt 1°),
-  the facing dial, or the RX / RY / RZ fields. *Stand upright* clears the tilt.
-- **Before placing**: `[` / `]` rotate the ghost; placed props keep that angle.
-- **Several props**: choose *Each in place* or *Around center* in the panel.
-  The X / Y fields then move the group's center.
-- **Duplicate** (Ctrl+D) places the copy next to the original.
-- **Mirror** (`M`, or the panel's *Mirror a copy*) copies the selection to
-  the other side of the ring, left ↔ right as you look at it; `Shift+M` goes
-  front ↔ back. The mirror line is the arena's center (X = 0 or Y = 0,
-  whichever matches the view). Positions flip, rotations become
-  (rx, −ry, −rz) across X and the same turned 180° across Y (props that are
-  left-right symmetric look exactly mirrored), and with auto snapping a copy
-  sits on the surface under it. Props on the center line are skipped.
-- **Line up / Space evenly** (the panel, with 2 or more props selected):
-  *Line up* puts them in a straight row running left ↔ right or front ↔ back
-  as you look at it (snapped to X or Y, like Mirror); each prop takes the
-  middle value across the row. *Space evenly* (3 or more) keeps the two
-  outermost props where they are and gives the rest equal distances between
-  centers, in their current order. Heights follow the surface under each
-  prop, as in any move, and each click is one undo step. Code:
-  `alignSelected` / `distributeSelected` in `js/tools.js`.
-- G / R still work Blender-style (click to finish, Esc cancels).
-
-## Screenshot
-
-The camera button in the toolbar takes a picture of the view as it is, about
-2560 px wide, without the editing aids (handles, ghosts, drop guides, and the
-selection, hover and overlap colors). It's copied to the clipboard to paste
-anywhere (Discord, etc.); *Download* in the message saves it as a PNG named
-after the match and the time. Where the browser doesn't allow copying
-images, it's saved straight away. Code: `screenshot()` in `js/viewport.js`.
-
-## Overlap warning
-
-With *Overlap warning* on (Arena panel, on by default), props that go into
-each other turn red, and the bottom bar counts them; clicking the count
-selects them. Props that only touch, stacked or side by side, aren't
-flagged: a prop has to go about 1.5 cm into another. The check runs a moment
-after each change, comparing the actual meshes (not just their boxes), with
-[three-mesh-bvh](https://github.com/gkjohnson/three-mesh-bvh) loaded from the
-CDN the first time. Screenshots never show the red. Code: `js/overlaps.js`.
-
-## Walk navigation
-
-Blender's walk mode (View ‣ Navigation ‣ Walk Navigation), with its keys and
-default settings (`js/walk.js`).
-
-- **Start**: `Shift` + `` ` `` (the key left of 1) or toolbar *Walk*. The
-  cursor hides and the mouse looks around; a crosshair marks the middle.
-- **Move**: `W` `A` `S` `D` or the arrows. Forward goes where you look;
-  `E` / `Q` go straight up / down, `R` / `F` up / down the view. Hold `Shift`
-  for 5× faster, `Alt` for 5× slower. The wheel (or `+` / `-`) changes the
-  speed: 2.5 m/s (250 units a second) to start, remembered between walks.
-- **Teleport**: `Space` flies to what the crosshair is on, stopping eye height
-  (160) short of it.
-- **Gravity**: `Tab`. The camera then stays 160 above whatever is under it
-  (floor, ring, props), hops up onto things it walks into and falls off
-  edges; `V` jumps (hold for the full 0.4 m, `.` / `,` change it). Finding the
-  floor uses the physics engine, which downloads the first time gravity is on;
-  until then the snap surfaces stand in.
-- **Finish**: click or `Enter` keeps the new view (orbiting then turns around
-  what the crosshair was on); `Esc` or right-click goes back to where the
-  walk started. The status bar shows the eye position while walking.
-- **Placing while walking**: start walking while placing a prop (or pick one
-  with the prop wheel: hold `C`, move the mouse, let go). Its ghost hangs at
-  the crosshair with the drop guide; `G` drops it there with physics (a set
-  goes down exactly as saved), `[` / `]` turn it 15°. Its facing turns with
-  your view, so it looks the same from wherever you stand. The aim looks
-  through ropes and cage walls to the surface behind them.
-- **Settings** (toolbar gear): change any of these keys (two per action) and
-  the start shortcut, the mouse sensitivity and invert mouse. Keys are saved
-  by their place on the keyboard (`KeyboardEvent.code`), so they stay put on
-  any layout, and are shown with what they type on yours. Esc, the mouse
-  buttons and the wheel are fixed; Ctrl / ⌘ keys can't be used (the browser
-  keeps Ctrl + W and the like). Saved in this browser (`js/settings.js`,
-  `js/settings-ui.js`).
-
-## Prop sets
-
-Save a group of placed props exactly as it is, and stamp copies of it
-anywhere.
-
-- **Save**: select the props, then press Ctrl+G (or *Save as set* in the
-  panel). Name it; a 3D thumbnail is made automatically.
-- **Place**: open the *Sets* tab and click a set. The whole group follows the
-  cursor as a ghost; click to place a copy, stay in the mode to place more, Esc
-  to stop. Each copy is one undo step, and the new props come in selected.
-- **Exact**: the group is never rearranged. Every prop keeps its offset from
-  the group's center, its height above the group's ground and its rotation
-  numbers. Only the group as a whole moves: its center goes to the cursor and
-  its ground onto the surface there (floor, ring, stage...). Physics never
-  drops a set.
-- **Optional**: `[` / `]` turn the whole group (Shift 90°, Alt 1°) and `M`
-  mirrors it left-right (a corner setup becomes the opposite corner). Turning
-  only changes `rz` for upright props; tilted props are re-derived with the
-  same Blender-compatible conversion as the rotate handles. Mirroring maps
-  (rx, ry, rz) to (rx, -ry, -rz).
-- Sets saved before this change are converted when the page loads.
-- **Library**: rename (✎) and delete (✕, with Undo) on each tile. Sets live
-  in this browser; *Export* saves them all as a `prop-sets.json` file (backup,
-  or to move them to another browser), and *Import* → *From a file…* adds a
-  file's sets.
-- **Share**: the share button on a tile copies the set's share code, a line of
-  text starting `PSD-SET1:` to paste in Discord or anywhere. Whoever gets it
-  presses Ctrl+V on the site (outside a text box), or *Import*, sees the set
-  with its picture and adds it. The code holds only the set's name and props
-  (3 decimals, like a profile), nothing about who made it. A 20-prop set is
-  about 650 characters; past about 75 props it no longer fits in one Discord
-  message (Discord sends it as a file, which still works). Code: `js/sets.js`.
-
-## Matches
-
-The *Match* panel at the top of the sidebar works in two setups (`matches` in
-`js/features.js`):
-
-- **For everyone** (`matches: false`, the default): pick one of the 17 match
-  types, or *Free design*. Each match starts with the game's default props
-  for it (read from `data/propsets/`), and your changes are remembered in
-  this browser, separately for each match (IndexedDB `ppg-match-layouts`;
-  never a folder, never a file to handle). The arena follows the match.
-  Export inside a match names the profile after it, and keeps the game props
-  the site doesn't show (the ambulance, the casket…), which the match needs.
-- **With the game tools** (`matches: true`): everything below, on the game's
-  `PropsSet_*.jsfb` files and a connected PropsSet folder. Those matches live
-  in their own database (`ppg-matches`): the two setups never share a match.
-
-Each match type has its own prop set in the game (`PropsSet_<Mode>.jsfb`).
-The *Match* panel at the top of the sidebar edits them one at a time
-(`js/matches.js`, `js/matches-ui.js`).
-
-- **Pick a match** (or step with ◀ ▶): it opens with the game's vanilla
-  props (`data/propsets/`, 17 match types) and the arena follows the match.
-  *Free design* is the scene as before, not tied to a match; it's kept while
-  you edit matches.
-- **Saving**: a match saves by itself a moment after each change (Ctrl+S
-  saves at once). Without a connected folder the changes stay in this browser
-  (a • marks edited matches); Export works as usual.
-- **Connect PropsSet folder** (Chrome / Edge, on the site's `https://`
-  address: browsers only give folders to secure pages): pick your
-  `BakeMe\Environment\PropsSet` folder. The site opens the match files
-  already there as they are, and after you confirm it adds the missing ones
-  (as edited here, or vanilla); nothing already there is changed. A file it
-  can't read is left exactly as it is. *Replace them instead* writes the
-  site's versions over them (each original kept once as `<name>.jsfb.bak`).
-  From then on, switching matches opens that match's file in the folder and
-  your edits save into it. After a browser restart the browser asks for
-  permission again (switching matches, *Reconnect* or Ctrl+S); until then
-  edits wait in this browser and go in on reconnecting. Without permission a
-  match you never edited here won't open (it would show the vanilla one in
-  place of your file).
-- **Where the folder can be**: not inside system folders such as Program
-  Files, Windows or AppData. Chrome and Edge refuse those whatever they hold
-  (their message says the folder "contains system files"), and Steam puts the
-  game, and often the mod tools, in Program Files. So keep a BakeMe folder of
-  its own inside Desktop, Documents or Downloads (not those folders
-  themselves), e.g. `Documents\BakeMe_Propsets\Environment\PropsSet`, connect
-  that PropsSet folder and bake `BakeMe_Propsets` with the mod tool. The
-  connect dialog explains this before the folder is picked.
-- **Props the site doesn't show** (the ambulance, the casket, the dumpster,
-  the WarGames pieces…) stay exactly as they are, whatever you do: Clear scene
-  in a match only removes the site's props. The panel says how many a match
-  has.
-- **Importing** a game file named like a match (e.g. `PropsSet_HIAC.jsfb`)
-  opens it as that match's new version (Ctrl+Z goes back); other game files
-  open in free design.
-- King of Hell and Lights Out have no vanilla file here, so they aren't in
-  the list (their files can still be imported and exported in free design).
-
-## Game prop sets (.jsfb)
-
-> **Switched off for now**, both ways (`jsfbExport: false` and
-> `jsfbImport: false` in `js/features.js`): Export only writes
-> `.propsprofile`, Ctrl+S opens Export, and *Import* / drag and drop turn a
-> `.jsfb` away with a message (it's recognised by its contents, whatever the
-> file is called). The code below is all still there.
-
-The game keeps one prop set per match type, `PropsSet_<Mode>.jsfb`. The
-designer opens and saves these directly, without the intermediary program.
-
-- **Open**: *Import* (or drag and drop) a `PropsSet_*.jsfb`. It replaces the
-  scene (Ctrl+Z brings the old one back), and the arena follows the match type
-  (Ambulance, Elimination Chamber, HIAC, WarGames; others get the normal ring).
-- **Save**: *Export* → *Game prop set*. The name defaults to the file you
-  opened, and the name field suggests the game's match types.
-- **Where it goes**: `BakeMe\Environment\PropsSet`. Put the file in that
-  folder (replacing the one with the same name), then bake the BakeMe folder;
-  the game only picks it up from there. The export dialog says so, with the
-  full path and file name, and so does the message after Download.
-- **Save to game folder** (Chrome / Edge): *Export* → *Save to game folder*,
-  or `Ctrl+S` for a scene opened from a game file. The first time, pick the
-  folder with the `PropsSet_*.jsfb` files; the browser remembers it (and may
-  ask again for permission to edit it). The first save over a file keeps the
-  original next to it as `<name>.jsfb.bak`, never overwritten afterwards.
-  Like connecting a match folder, it can't use a folder under Program Files,
-  Windows or AppData. *Import* keeps the plain upload dialog, which opens
-  files from anywhere.
-  Other browsers keep *Download*. Code: `js/gamefolder.js`.
-- **Nothing is lost**: each prop keeps the fields the designer doesn't show
-  (hashes, scale, extra lists) and writes them back. Props the catalog doesn't
-  know (the ambulance, the casket, the WarGames pedestals...) aren't drawn but
-  stay in the file, in their place. Saving without edits gives an identical
-  file, and the export dialog says so.
-- **New props** are written the way the intermediary writes them (every field,
-  hash `0x49016AEE`, scale 1), with values rounded to 3 decimals like a
-  profile. Saving directly should give the same file as exporting a profile
-  and running it through the intermediary; comparing the two is the planned
-  confirmation of the axes below.
-- **.propsprofile** import and export work as before. A profile exported from
-  an opened game file also lists the props the designer can't show; a game
-  file saved from an imported profile includes its unrecognized lines.
-- **Axes**: jsfb position `(x, y, z)` = designer `(x, -z, y)`; rotation
-  `(x, y, z)` = designer `(rx, rz, ry)`. This still needs one check against the
-  intermediary's own output.
-- **Code**: `js/jsfb.js` reads and writes the FlatBuffers bytes (a port of
-  `propset.py`, byte-identical on all 19 sample files); `js/propset.js`
-  converts between the file and the scene.
-
-## Physics
-
-Drop props and let them fall into place.
-
-- **Turn it on**: toolbar *Physics* or `P`. Placing then drops props instead of
-  setting them down: the ghost hangs above the cursor with a dashed guide to
-  the spot below, and a click lets it fall. It lands on whatever is really
-  there (ring, ropes, steps, barricade, other props) and topples if it can't
-  stand. Lines and stacks drop the same way; sets are always placed exactly as
-  saved.
-- **While placing**: `↑` / `↓` change the drop height (60 by default; Shift
-  ×5, Alt 1). Shift + click adds a random tumble. With physics on, the cursor
-  picks the surface it is over, so pointing at a table drops onto the table;
-  ropes and cage walls in the way are looked through.
-- **Existing props**: *Drop with physics* in the panel (or `End`) lets the
-  selection fall from where it is. A prop that starts inside something (like a
-  barrel whose center sits on the floor) is lifted clear first.
-- **Undo**: everything dropped while earlier props are still falling becomes
-  one undo step when all of it comes to rest. Ctrl+Z during the fall cancels
-  it. Any other edit first finishes the fall instantly.
-- **Clean numbers**: a prop that comes to rest within a hair of level (no
-  point off by more than 1 unit) is made exactly level, and upright props get
-  `rx = ry = 0` with only `rz` set. With auto snapping on, a prop resting
-  within 1.5 of a snap surface (ring 106, floor 0, ...) is put exactly on it.
-  Tilted results go through the same Blender-compatible conversion as the
-  rotate handles.
-- **How**: [Rapier](https://rapier.rs) (`@dimforge/rapier3d-compat`, about
-  760 KB, loaded from the CDN on first use; `js/physics.js`). The arena models
-  and placed props are fixed triangle meshes; falling props are the convex
-  hulls of their models. The simulation runs in meters, gravity 9.81.
-
-Other additions: undo/redo, box select, state switching on placed props,
-X-ray arena, and autosave of the scene in the browser.
+| File | What |
+|---|---|
+| `js/viewport.js` | three.js scene, camera, screenshots |
+| `js/tools.js` | placing, selecting, moving, rotating, arranging |
+| `js/ui.js` | sidebar, panels, import/export |
+| `js/profile.js` | `.propsprofile` read/write |
+| `js/sets.js`, `js/sets-ui.js` | sets and share codes |
+| `js/matches.js`, `js/matches-ui.js` | match picker |
+| `js/physics.js` | Rapier drop physics |
+| `js/overlaps.js` | overlap warning |
+| `js/walk.js`, `js/settings.js` | walk mode and its keys |
+| `js/features.js` | switched-off features |
