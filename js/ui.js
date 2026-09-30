@@ -704,8 +704,9 @@ async function pickAndReport() {
 async function saveToFolder(name, bytes) {
   try {
     if (!(await GF.folder())) await pickAndReport();
-    const { folder, backedUp } = await GF.saveFile(name, bytes);
-    toast(`Saved ${name} into ${folder}${backedUp ? ` (the original is kept as ${name}.bak)` : ''}`, { ms: 5000 });
+    const { folder, backedUp, replaced } = await GF.saveFile(name, bytes);
+    const what = /\.jsfb$/i.test(name) ? 'game prop set' : 'profile';
+    toast(`${replaced ? 'Overwrote' : 'Saved new'} ${what} ${name} in ${folder}${backedUp ? ` (the original is kept as ${name}.bak)` : ''}`, { ms: 5000 });
     return true;
   } catch (e) {
     if (e.name !== 'AbortError') toast(`Couldn’t save into the game folder: ${e.message}`, { error: true });
@@ -737,8 +738,13 @@ async function quickSave() {
     if ((await M.connectedFolder()) && (await GF.access()) !== 'granted') await M.reconnectFolder();
     await M.saveNow({ settle: true });
     const { state, detail } = M.saveStatus();
-    if (state === 'error') toast(`Couldn’t save ${M.matchName(S.match)}: ${detail}`, { error: true });
-    else toast(state === 'pending' ? `Saved ${M.matchName(S.match)} in this browser; the folder needs reconnecting` : `Saved ${M.matchName(S.match)}`);
+    const match = M.matchName(S.match);
+    const file = M.fileName(S.match);
+    if (state === 'error') toast(`Couldn’t save ${match}: ${detail}`, { error: true });
+    else if (!FEATURES.matches) toast(`Overwrote the ${match} match layout (in this browser, not a file)`);
+    else if (state === 'pending') toast(`Overwrote the browser copy of game prop set ${file}; the folder needs reconnecting`, { ms: 6000 });
+    else if (await M.connectedFolder()) toast(`Overwrote game prop set ${file} in the PropsSet folder`, { ms: 5000 });
+    else toast(`Overwrote the browser copy of game prop set ${file}`);
     return;
   }
   if (S.jsfb && FEATURES.jsfbExport && GF.supported() && (await GF.folder())) {
@@ -900,7 +906,8 @@ function bindProfile() {
     if (data == null) return;
     const name = exportFileName();
     download(name, data);
-    if (expFormat === 'jsfb') toast(`Saved ${name}. Put it in ${BAKE_DIR}, then bake.`, { ms: 8000 });
+    if (expFormat === 'jsfb') toast(`Downloaded game prop set ${name}. Put it in ${BAKE_DIR}, then bake.`, { ms: 8000 });
+    else toast(`Downloaded profile ${name} (a new file, nothing overwritten)`);
     dlg.close();
   });
   $('exp-name').addEventListener('input', () => { if (expFormat === 'jsfb') showBakePath(); });
@@ -932,7 +939,7 @@ function bindProfile() {
     if (existing && !existing.endsWith('\n')) existing += '\n';
     download(file.name, existing + refreshExportPreview());
     dlg.close();
-    toast(`Saved ${file.name} with your props appended`);
+    toast(`Downloaded profile ${file.name} with your props appended (the original file isn’t changed)`, { ms: 6000 });
   });
 
   // The plain upload dialog: it opens files from anywhere. (The folder-access

@@ -152,11 +152,12 @@ export async function saveFile(name, bytes, { backup = true } = {}) {
   if (!(await allowed(dir))) throw new DOMException('the browser was not allowed to edit the folder', 'NotAllowedError');
   const bak = `${name}.bak`;
   let backedUp = false;
-  if (backup && await exists(dir, name) && !(await exists(dir, bak))) {
+  const replaced = await exists(dir, name);
+  if (backup && replaced && !(await exists(dir, bak))) {
     const original = await (await dir.getFileHandle(name)).getFile();
     await write(dir, bak, await original.arrayBuffer());
     backedUp = true;
   }
   await write(dir, name, bytes);
-  return { folder: dir.name, backedUp };
+  return { folder: dir.name, backedUp, replaced };
 }

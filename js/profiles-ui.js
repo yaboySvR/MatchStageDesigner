@@ -128,7 +128,7 @@ function step(dir) {
 export async function saveProfile() {
   try {
     const name = await PF.save();
-    toast(`Saved ${PF.baseName(name)}`);
+    toast(`Overwrote profile ${name} (the copy in this browser)`);
     return true;
   } catch (e) {
     toast(`Couldn’t save the profile: ${e.message}`, { error: true });
@@ -141,6 +141,7 @@ export async function saveProfile() {
 function downloadProfile() {
   if (!S.profile) return;
   download(S.profile, PF.currentText());
+  toast(`Downloaded profile ${S.profile} (a new file, nothing overwritten)`);
 }
 
 async function removeProfile() {
