@@ -16,7 +16,7 @@ Live at **https://propseteditor.com**.
 - **Walk mode**: Blender-style first-person navigation (Shift+`).
 - **Matches**: one remembered layout per match type, starting from the
   game's defaults.
-- **Profiles**: upload a folder of `.propsprofile` files (any folder, it's
+- **Prop Profiles**: upload a folder of `.propsprofile` files (any folder, it's
   only read once), flip through them, save changes in the browser, download
   them back.
 - **Sets**: save a group of props, stamp copies, share it as a code.

@@ -26,7 +26,7 @@
   <aside id="sidebar">
     <header class="brand">
       <div>
-        <h1>PropSetDesigner</h1>
+        <h1><span data-feature-off="matches">Prop Profile Generator</span><span data-feature="matches" hidden>PropSetDesigner</span></h1>
       </div>
       <button class="icon-btn sidebar-close" id="btn-sidebar-close" title="Close panel" aria-label="Close panel">✕</button>
     </header>
@@ -34,7 +34,7 @@
     <section class="panel" id="match-panel">
       <div class="tabs panel-tabs" role="tablist" aria-label="Layouts">
         <button type="button" role="tab" id="tab-matches" aria-selected="true">Matches</button>
-        <button type="button" role="tab" id="tab-profiles" aria-selected="false">Profiles</button>
+        <button type="button" role="tab" id="tab-profiles" aria-selected="false">Prop Profiles</button>
       </div>
       <div id="profiles-view" hidden>
         <div class="match-row">
@@ -369,7 +369,7 @@
         <h4>Matches</h4>
         <dl>
           <dt>Match · ◀ ▶</dt><dd>Each match remembers its own layout, starting from the game's defaults</dd>
-          <dt>Profiles tab</dt><dd>Upload a folder of .propsprofile files into the site and step through them; Save or Ctrl+S keeps changes, Download gets the file back</dd>
+          <dt>Prop Profiles tab</dt><dd>Upload a folder of .propsprofile files into the site and step through them; Save or Ctrl+S keeps changes, Download gets the file back</dd>
           <dt data-feature="matches" hidden>Connect PropsSet folder</dt><dd data-feature="matches" hidden>Opens and saves the match files in that folder (https only, not inside Program Files)</dd>
         </dl>
       </div>

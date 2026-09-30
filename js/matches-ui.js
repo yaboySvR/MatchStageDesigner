@@ -106,7 +106,7 @@ async function renderStatus() {
   const saved = state === 'saving' ? 'Saving…' : state === 'error' ? failed : 'Saved';
   let line;
   if (S.profile) {
-    line = `Profile <b>${esc(S.profile.replace(/\.propsprofile$/i, ''))}</b> is open (Profiles tab); pick a match to leave it`;
+    line = `Profile <b>${esc(S.profile.replace(/\.propsprofile$/i, ''))}</b> is open (Prop Profiles tab); pick a match to leave it`;
   } else if (browser) {
     line = S.match ? (saved === 'Saved' ? 'Saved in this browser' : saved) : 'Pick a match to design its props';
   } else if (dir && allowed) {
