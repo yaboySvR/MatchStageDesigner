@@ -20,7 +20,7 @@ import { keyId } from './settings.js';
 import * as GF from './gamefolder.js';
 import * as M from './matches.js';
 import { initMatchesUI } from './matches-ui.js';
-import { FEATURES, applyFeatures, watchSwitch } from './features.js';
+import { FEATURES, applyFeatures, siteName, watchSwitch } from './features.js';
 import * as OV from './overlaps.js';
 import { initProfilesUI, saveProfile } from './profiles-ui.js';
 
@@ -549,7 +549,7 @@ async function takeScreenshot() {
   const d = new Date();
   const two = (n) => String(n).padStart(2, '0');
   const when = `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}.${two(d.getMinutes())}.${two(d.getSeconds())}`;
-  const name = `PropSetDesigner - ${S.match ? M.matchName(S.match) : 'Free design'} - ${when}.png`;
+  const name = `${siteName()} - ${S.match ? M.matchName(S.match) : 'Free design'} - ${when}.png`;
   const png = V.screenshot();
   const save = async () => download(name, await png);
   try {

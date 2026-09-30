@@ -26,6 +26,9 @@ export const FEATURES = {
 
 const allOn = (names) => names.split(/\s+/).every((n) => FEATURES[n]);
 
+// The site's name follows the switch too.
+export const siteName = () => (localOn ? 'PropSetDesigner' : 'Prop Profile Generator');
+
 // Show or hide the page parts tagged data-feature="name …" (shown while all
 // those features are on) or data-feature-off="name" (shown while it's off).
 // Tooltips that change with a feature keep their text for while it's off in
@@ -38,6 +41,8 @@ export function applyFeatures(root = document) {
     el.dataset.titleOff ??= el.title;
     el.title = allOn(el.dataset.titleFeature) ? el.dataset.titleOn : el.dataset.titleOff;
   }
+  for (const el of root.querySelectorAll('[data-site-name]')) el.textContent = siteName();
+  if (root === document) document.title = siteName();
 }
 
 // ---------------------------------------------------------------- local switch
