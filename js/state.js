@@ -27,6 +27,7 @@ export const S = {
   jsfb: null,              // the game prop set file the scene was opened from (propset.js):
                            // { name, root, hasProps, keep: props the catalog doesn't know }
   match: null,             // the match being edited (a MATCHES file, matches.js), or null: free design
+  profile: null,           // the .propsprofile open from the profiles folder (profiles.js), or null
   selected: new Set(),
   nextId: 1,
 

@@ -22,6 +22,7 @@ import * as M from './matches.js';
 import { initMatchesUI } from './matches-ui.js';
 import { FEATURES, applyFeatures, watchSwitch } from './features.js';
 import * as OV from './overlaps.js';
+import { initProfilesUI, saveProfile } from './profiles-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -59,6 +60,7 @@ export function initUI() {
     frameAll: () => tools.frameSelectionOrAll(true),
     setOpened: (name, bytes) => { opened = { name, bytes }; },
   }, { mode: FEATURES.matches ? 'game' : 'browser' });
+  initProfilesUI({ frameAll: () => tools.frameSelectionOrAll(true) });
   bindProfile();
   bindCustomDialog();
   bindManageDialog();
@@ -724,6 +726,11 @@ async function quickSave() {
   }
   if (document.querySelector('dialog[open]')) return;
   settleNow();
+  // An open profile from the profiles folder: write it back.
+  if (S.profile) {
+    await saveProfile();
+    return;
+  }
   // A match saves by itself; Ctrl+S does it now (and, being a key press, may
   // let the browser ask for the folder again).
   if (S.match) {

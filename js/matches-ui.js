@@ -13,6 +13,7 @@ import * as M from './matches.js';
 import * as GF from './gamefolder.js';
 import { envForFile } from './propset.js';
 import { toast } from './toast.js';
+import { leaveProfile } from './profiles-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -41,6 +42,7 @@ export function initMatchesUI(h, { mode = 'game' } = {}) {
   on('match', applyMatch);
   on('match-status', renderStatus);
   on('match-edited', renderOptions);
+  on('profile', renderStatus);
   sync();
   M.initMatches()
     .catch((e) => toast(browser ? 'Couldn’t load the open match; try reloading the page' : `Matches: ${e.message}`, { error: true }))
@@ -48,7 +50,9 @@ export function initMatchesUI(h, { mode = 'game' } = {}) {
 }
 
 async function go(file) {
-  if (busy || file === S.match) return;
+  if (busy || (file === S.match && !S.profile)) return;
+  if (S.profile && !(await leaveProfile())) { sync(); return; } // unsaved profile: Cancel
+  if (file === S.match) { sync(); renderStatus(); return; }
   busy = true;
   sync();
   try {
@@ -101,7 +105,9 @@ async function renderStatus() {
   const failed = browser ? 'Couldn’t save this match in the browser' : `Couldn’t save: ${esc(detail)}`;
   const saved = state === 'saving' ? 'Saving…' : state === 'error' ? failed : 'Saved';
   let line;
-  if (browser) {
+  if (S.profile) {
+    line = `Profile <b>${esc(S.profile.replace(/\.propsprofile$/i, ''))}</b> is open (Profiles tab); pick a match to leave it`;
+  } else if (browser) {
     line = S.match ? (saved === 'Saved' ? 'Saved in this browser' : saved) : 'Pick a match to design its props';
   } else if (dir && allowed) {
     line = `PropsSet folder <b>${esc(dir.name)}</b>${S.match ? ` · ${saved}` : ''}`;

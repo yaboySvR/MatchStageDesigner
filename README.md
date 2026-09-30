@@ -16,6 +16,9 @@ Live at **https://propseteditor.com**.
 - **Walk mode**: Blender-style first-person navigation (Shift+`).
 - **Matches**: one remembered layout per match type, starting from the
   game's defaults.
+- **Profiles folder** (Chrome / Edge): connect a folder of `.propsprofile`
+  files, flip through them, and save the open one back (first save keeps a
+  `.bak`). The folder can't be inside Program Files.
 - **Sets**: save a group of props, stamp copies, share it as a code.
 - **Overlap warning**: props that clip into each other turn red.
 - **Screenshot**: copy a clean picture of the view.
@@ -56,6 +59,7 @@ python web/tools/build_assets.py
 | `js/profile.js` | `.propsprofile` read/write |
 | `js/sets.js`, `js/sets-ui.js` | sets and share codes |
 | `js/matches.js`, `js/matches-ui.js` | match picker |
+| `js/profiles.js`, `js/profiles-ui.js` | profiles folder tab |
 | `js/physics.js` | Rapier drop physics |
 | `js/overlaps.js` | overlap warning |
 | `js/walk.js`, `js/settings.js` | walk mode and its keys |

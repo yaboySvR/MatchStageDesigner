@@ -121,7 +121,7 @@ export function save() {
       v: 3, env: S.env, stage: S.stage, autoSnap: S.autoSnap, stacking: S.stacking, xray: S.xray, overlapWarn: S.overlapWarn,
       pivot: S.pivot, gizmo: S.gizmo, space: S.space, physics: S.physics, dropHeight: S.dropHeight,
       walkSpeed: S.walkSpeed, walkGravity: S.walkGravity,
-      props: S.props, unknown: S.unknownLines, jsfb: S.jsfb, match: S.match,
+      props: S.props, unknown: S.unknownLines, jsfb: S.jsfb, match: S.match, profile: S.profile,
     }));
   } catch { /* storage full or unavailable */ }
 }
@@ -148,6 +148,7 @@ export function loadSaved() {
     S.unknownLines = d.unknown || [];
     S.jsfb = d.jsfb || null;
     S.match = typeof d.match === 'string' ? d.match : null; // checked against the match list by matches.js
+    S.profile = typeof d.profile === 'string' && !S.match ? d.profile : null;
     S.nextId = S.props.reduce((m, p) => Math.max(m, p.id), 0) + 1;
     return true;
   } catch {

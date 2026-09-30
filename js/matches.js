@@ -241,7 +241,10 @@ function load(file, bytes, pending) {
   if (pending) saveNow();
 }
 
-async function restoreFree() {
+// Keep the free-design scene in its slot (a profile is about to replace it).
+export const stashFree = () => putMeta('free', { scene: store.snapshot(), env: S.env });
+
+export async function restoreFree() {
   const free = await getMeta('free');
   quiet = true;
   try {

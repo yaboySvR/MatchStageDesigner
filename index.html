@@ -32,13 +32,26 @@
     </header>
 
     <section class="panel" id="match-panel">
-      <h2>Match</h2>
+      <div class="tabs panel-tabs" role="tablist" aria-label="Layouts">
+        <button type="button" role="tab" id="tab-matches" aria-selected="true">Matches</button>
+        <button type="button" role="tab" id="tab-profiles" aria-selected="false">Profiles</button>
+      </div>
+      <div id="profiles-view" hidden>
+        <div class="match-row">
+          <button type="button" class="icon-btn" id="profile-prev" title="Previous profile" aria-label="Previous profile">◀</button>
+          <select id="profile-select" aria-label="Profile" title="The .propsprofile from your profiles folder you are editing"></select>
+          <button type="button" class="icon-btn" id="profile-next" title="Next profile" aria-label="Next profile">▶</button>
+        </div>
+        <p class="match-status" id="profile-status"></p>
+      </div>
+      <div id="matches-view">
       <div class="match-row">
         <button type="button" class="icon-btn" id="match-prev" title="Previous match" aria-label="Previous match">◀</button>
         <select id="match-select" aria-label="Match" title="The match whose props you are designing (remembered in this browser)" data-title-feature="matches" data-title-on="The match whose prop set you are editing"></select>
         <button type="button" class="icon-btn" id="match-next" title="Next match" aria-label="Next match">▶</button>
       </div>
       <p class="match-status" id="match-status"></p>
+      </div>
     </section>
 
     <section class="panel">
@@ -296,6 +309,18 @@
   </form>
 </dialog>
 
+<dialog id="dlg-unsaved" class="dlg">
+  <form method="dialog">
+    <h3>Unsaved changes</h3>
+    <p><b id="unsaved-name"></b> has changes that aren't saved in its file yet.</p>
+    <div class="dlg-actions">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn" value="discard">Don't save</button>
+      <button class="btn primary" value="save">Save</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlg-welcome" class="dlg">
   <form method="dialog">
     <h3>Welcome to PropSetDesigner</h3>
@@ -344,6 +369,7 @@
         <h4>Matches</h4>
         <dl>
           <dt>Match · ◀ ▶</dt><dd>Each match remembers its own layout, starting from the game's defaults</dd>
+          <dt>Profiles tab</dt><dd>Connect a folder of .propsprofile files and step through them; Save or Ctrl+S writes the open one (the original is kept once as .bak)</dd>
           <dt data-feature="matches" hidden>Connect PropsSet folder</dt><dd data-feature="matches" hidden>Opens and saves the match files in that folder (https only, not inside Program Files)</dd>
         </dl>
       </div>
