@@ -1,16 +1,17 @@
 // The Match panel's two tabs (Matches / Profiles), and the Profiles tab:
-// connect a folder of .propsprofile files, step through them, save the open
-// one (profiles.js does the work).
+// upload a folder of .propsprofile files into the browser, step through them,
+// save and download the open one (profiles.js does the work).
 
 import { S, on } from './state.js';
 import * as PF from './profiles.js';
+import { download } from './profile.js';
 import { toast } from './toast.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 let hooks;         // from ui.js: { frameAll }
-let names = [];    // files in the folder, as last listed
+let names = [];    // profiles kept here, as last listed
 let busy = false;
 
 export function initProfilesUI(h) {
@@ -24,11 +25,20 @@ export function initProfilesUI(h) {
   $('profile-select').addEventListener('change', (e) => go(e.target.value || null));
   $('profile-prev').addEventListener('click', () => step(-1));
   $('profile-next').addEventListener('click', () => step(1));
-  $('profile-status').addEventListener('click', async (e) => {
+  $('profile-status').addEventListener('click', (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act;
-    if (act === 'connect') connect();
-    if (act === 'reconnect') { await PF.allowed(); refresh(); }
+    if (act === 'upload') $('file-profiles').click();
     if (act === 'save') saveProfile();
+    if (act === 'download') downloadProfile();
+    if (act === 'remove') removeProfile();
+  });
+  $('file-profiles').addEventListener('change', async (e) => {
+    const files = [...e.target.files];
+    e.target.value = '';
+    if (!files.length) return;
+    const { added, replaced } = await PF.upload(files);
+    if (!added && !replaced) toast('No .propsprofile files in that folder', { error: true });
+    else toast(`Uploaded ${added + replaced} profile${added + replaced === 1 ? '' : 's'}${replaced ? ` (${replaced} replaced the ones with the same name)` : ''}`);
   });
   on('profile', () => { hooks.frameAll(); refresh(); });
   on('profile-status', render);
@@ -43,54 +53,34 @@ function showTab(t) {
   $('matches-view').hidden = profiles;
   $('profiles-view').hidden = !profiles;
   try { localStorage.setItem('ppg.layoutTab', t); } catch { /* storage unavailable */ }
-  if (profiles) refresh();
 }
 
 async function refresh() {
-  names = (await PF.list().catch(() => null)) || (S.profile ? [S.profile] : []);
-  if (S.profile && !names.includes(S.profile)) names.unshift(S.profile);
+  names = await PF.list();
   $('profile-select').innerHTML = '<option value="">Free design</option>'
     + names.map((n) => `<option value="${esc(n)}">${esc(PF.baseName(n))}</option>`).join('');
   render();
 }
 
-async function render() {
-  const sel = $('profile-select');
-  sel.value = S.profile || '';
-  const on = PF.supported() && !!(await PF.folder());
-  for (const id of ['profile-select', 'profile-prev', 'profile-next']) $(id).disabled = busy || !on;
+function render() {
+  $('profile-select').value = S.profile || '';
+  for (const id of ['profile-select', 'profile-prev', 'profile-next']) $(id).disabled = busy || !names.length;
+  const upload = `<button type="button" class="text-btn" data-act="upload" title="Pick a folder: its .propsprofile files are copied into this browser (the folder itself is never touched, so any folder works)">${names.length ? 'Upload more…' : 'Upload a folder of profiles…'}</button>`;
   let line;
-  if (!PF.supported()) {
-    line = 'A profiles folder needs Chrome or Edge.';
-  } else if (!(await PF.folder())) {
-    line = '<button type="button" class="text-btn" data-act="connect">Connect profiles folder…</button>'
-      + '<br><span class="muted">It can’t be inside Program Files, Windows or AppData (the browser refuses those): keep it in Documents, Desktop or Downloads.</span>';
-  } else if ((await PF.access()) !== 'granted') {
-    line = '<button type="button" class="text-btn" data-act="reconnect">Reconnect profiles folder</button>'
-      + (S.profile && PF.isDirty() ? ' · unsaved changes' : '');
+  if (!names.length) {
+    line = `${upload}<br><span class="muted">They’re copied into this browser; the folder is never touched, so any folder works.</span>`;
   } else {
-    const d = await PF.folder();
-    line = `Folder <b>${esc(d.name)}</b> · ${names.length} profile${names.length === 1 ? '' : 's'}`;
+    line = `${names.length} profile${names.length === 1 ? '' : 's'} in this browser`;
     if (S.profile) {
       line += PF.isDirty()
-        ? ' · <button type="button" class="text-btn" data-act="save" title="Write it into its file (Ctrl+S)">Save</button> unsaved changes'
+        ? ' · <button type="button" class="text-btn" data-act="save" title="Keep the changes (Ctrl+S)">Save</button> unsaved changes'
         : ' · Saved';
+      line += ' · <button type="button" class="text-btn" data-act="download" title="Download this profile as a .propsprofile file">Download</button>'
+        + ' · <button type="button" class="text-btn danger" data-act="remove" title="Remove this profile from the site">Remove</button>';
     }
-    line += ' · <button type="button" class="text-btn" data-act="connect">Change folder</button>';
+    line += ` · ${upload}`;
   }
   $('profile-status').innerHTML = line;
-}
-
-async function connect() {
-  if (S.profile && !(await leaveProfile())) return;
-  try {
-    await PF.choose();
-    const n = (await PF.list())?.length ?? 0;
-    toast(`Profiles folder connected: ${n} profile${n === 1 ? '' : 's'}`);
-  } catch (e) {
-    if (e.name !== 'AbortError') toast(`Couldn’t use that folder: ${e.message}`, { error: true });
-  }
-  refresh();
 }
 
 // Settle unsaved changes before the open profile goes away: Save, Don't
@@ -137,8 +127,8 @@ function step(dir) {
 
 export async function saveProfile() {
   try {
-    const { name, backedUp } = await PF.save();
-    toast(`Saved ${name}${backedUp ? ` (the original is kept as ${name}.bak)` : ''}`);
+    const name = await PF.save();
+    toast(`Saved ${PF.baseName(name)}`);
     return true;
   } catch (e) {
     toast(`Couldn’t save the profile: ${e.message}`, { error: true });
@@ -146,4 +136,16 @@ export async function saveProfile() {
   } finally {
     render();
   }
+}
+
+function downloadProfile() {
+  if (!S.profile) return;
+  download(S.profile, PF.currentText());
+}
+
+async function removeProfile() {
+  const name = S.profile;
+  if (!name || !window.confirm(`Remove ${PF.baseName(name)} from the site? (Download it first to keep a copy.)`)) return;
+  await PF.remove(name);
+  toast(`Removed ${PF.baseName(name)}`);
 }

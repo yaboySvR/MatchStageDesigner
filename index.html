@@ -39,7 +39,7 @@
       <div id="profiles-view" hidden>
         <div class="match-row">
           <button type="button" class="icon-btn" id="profile-prev" title="Previous profile" aria-label="Previous profile">◀</button>
-          <select id="profile-select" aria-label="Profile" title="The .propsprofile from your profiles folder you are editing"></select>
+          <select id="profile-select" aria-label="Profile" title="The uploaded .propsprofile you are editing"></select>
           <button type="button" class="icon-btn" id="profile-next" title="Next profile" aria-label="Next profile">▶</button>
         </div>
         <p class="match-status" id="profile-status"></p>
@@ -369,7 +369,7 @@
         <h4>Matches</h4>
         <dl>
           <dt>Match · ◀ ▶</dt><dd>Each match remembers its own layout, starting from the game's defaults</dd>
-          <dt>Profiles tab</dt><dd>Connect a folder of .propsprofile files and step through them; Save or Ctrl+S writes the open one (the original is kept once as .bak)</dd>
+          <dt>Profiles tab</dt><dd>Upload a folder of .propsprofile files into the site and step through them; Save or Ctrl+S keeps changes, Download gets the file back</dd>
           <dt data-feature="matches" hidden>Connect PropsSet folder</dt><dd data-feature="matches" hidden>Opens and saves the match files in that folder (https only, not inside Program Files)</dd>
         </dl>
       </div>
@@ -404,6 +404,7 @@
 <input type="file" id="file-import" accept=".propsprofile,.txt,.jsfb" hidden>
 <input type="file" id="file-append" accept=".propsprofile,.txt" hidden>
 <input type="file" id="file-sets" accept=".json,application/json" hidden>
+<input type="file" id="file-profiles" webkitdirectory multiple hidden>
 
 <script type="module" src="js/main.js"></script>
 </body>

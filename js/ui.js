@@ -885,9 +885,10 @@ function bindProfile() {
       $('exp-name').value = expNames.jsfb;
     }
     // Inside a match, a profile is named after the match.
-    if (S.match) {
-      if (expFormat === 'profile') $('exp-name').value = M.matchName(S.match);
-      else expNames.profile = M.matchName(S.match);
+    const named = S.match ? M.matchName(S.match) : S.profile ? S.profile.replace(/\.propsprofile$/i, '') : null;
+    if (named) {
+      if (expFormat === 'profile') $('exp-name').value = named;
+      else expNames.profile = named;
     }
     setExportFormat(expFormat);
     dlg.showModal();

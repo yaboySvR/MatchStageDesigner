@@ -16,9 +16,9 @@ Live at **https://propseteditor.com**.
 - **Walk mode**: Blender-style first-person navigation (Shift+`).
 - **Matches**: one remembered layout per match type, starting from the
   game's defaults.
-- **Profiles folder** (Chrome / Edge): connect a folder of `.propsprofile`
-  files, flip through them, and save the open one back (first save keeps a
-  `.bak`). The folder can't be inside Program Files.
+- **Profiles**: upload a folder of `.propsprofile` files (any folder, it's
+  only read once), flip through them, save changes in the browser, download
+  them back.
 - **Sets**: save a group of props, stamp copies, share it as a code.
 - **Overlap warning**: props that clip into each other turn red.
 - **Screenshot**: copy a clean picture of the view.
