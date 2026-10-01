@@ -1019,6 +1019,7 @@ export function initTools() {
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   canvas.addEventListener('pointerdown', (e) => {
+    if (document.body.classList.contains('showcase')) return;
     trackMouse(e);
     if (wheelOpen()) {
       e.button === 0 ? wheelConfirm() : wheelCancel();
@@ -1053,6 +1054,7 @@ export function initTools() {
   });
 
   canvas.addEventListener('pointermove', (e) => {
+    if (document.body.classList.contains('showcase')) return;
     trackMouse(e);
     if (wheelOpen()) return wheelMove(e.clientX, e.clientY);
     if (gdrag) return updateGizmoDrag();

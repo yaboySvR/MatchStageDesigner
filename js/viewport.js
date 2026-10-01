@@ -196,7 +196,19 @@ function place(obj, p) {
 
 let hoverId = null;
 let overlapIds = new Set(); // props going into another one (overlaps.js)
+// Showcase: every prop in its plain color, no handles (showcase.js).
+let clean = false;
+let showHandles = null;
+export function setClean(on) {
+  clean = on;
+  if (on) showHandles ??= G.hideForPicture();
+  else { showHandles?.(); showHandles = null; }
+  for (const [id, mesh] of propMeshes) mesh.material = materialFor(id);
+  requestRender();
+}
+
 const materialFor = (id) => {
+  if (clean) return MAT.prop;
   if (S.selected.has(id)) return overlapIds.has(id) ? MAT.selBad : MAT.sel;
   if (id === hoverId) return MAT.hover;
   return overlapIds.has(id) ? MAT.bad : MAT.prop;
@@ -512,6 +524,18 @@ export function frameProps(ids) {
     box.setFromObject(ring);
   }
   fitBox(box);
+}
+
+// Showcase framing: the props and the ring (or the arena's own model) together,
+// with a little room around them.
+export function frameScene() {
+  const box = new THREE.Box3();
+  for (const m of propMeshes.values()) box.expandByObject(m);
+  const arena = ['ec', 'hiac', 'wg', 'amb', 'ringmat'].map((id) => envMeshes[id]).find((m) => m?.visible);
+  if (arena) box.expandByObject(arena);
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3()), half = box.getSize(new THREE.Vector3()).multiplyScalar(0.36);
+  fitBox(new THREE.Box3(c.clone().sub(half), c.clone().add(half)));
 }
 
 export function viewTop() {

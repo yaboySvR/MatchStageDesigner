@@ -104,6 +104,18 @@
   <main id="viewport">
     <div id="canvas-host"></div>
 
+    <div class="showcase-bar" id="showcase-bar" hidden>
+      <button class="chip" id="sc-play" type="button">❚❚ Pause</button>
+      <div class="tool-seg" id="sc-speed" role="radiogroup" aria-label="Speed">
+        <button class="chip" role="radio" type="button" data-speed="slow">Slow</button>
+        <button class="chip" role="radio" type="button" data-speed="normal">Normal</button>
+        <button class="chip" role="radio" type="button" data-speed="fast">Fast</button>
+      </div>
+      <button class="chip sc-record" id="sc-record" type="button" title="Saves one full circle (16 s) as a video">● Record a turn</button>
+      <button class="chip" id="sc-exit" type="button">Exit (Esc)</button>
+      <span class="sc-hint">Drag to change the angle · scroll to zoom · Space pauses</span>
+    </div>
+
     <div class="view-toolbar">
       <button class="icon-btn mobile-only" id="btn-sidebar" title="Props panel">☰</button>
       <button class="chip" id="btn-view-top" title="Top view (T)">Top</button>
@@ -125,6 +137,7 @@
       <button class="chip icon" id="btn-shot" title="Screenshot: copies a picture of the view (no handles or highlights) to paste anywhere, or download it" aria-label="Screenshot">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </button>
+      <button class="chip" id="btn-showcase" title="Showcase: hides the panels and slowly circles the camera around your props. Record a turn to save it as a video">🎬 Showcase</button>
       <button class="chip icon" id="btn-settings" title="Settings: walk keys and mouse speed" aria-label="Settings">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
@@ -349,6 +362,7 @@
           <dt>Right-drag · Shift + drag · Wheel</dt><dd>Orbit · pan · zoom</dd>
           <dt>T · F · Home</dt><dd>Top view · frame selection · frame all</dd>
           <dt>Camera button</dt><dd>Screenshot, copied to paste anywhere</dd>
+          <dt>Showcase</dt><dd>Hides the panels and circles the camera around your props; Record a turn saves a video</dd>
           <dt>Shift + ` · Walk</dt><dd>Walk around: W A S D + mouse, click keeps the view, Esc goes back</dd>
         </dl>
         <details class="help-more"><summary>All walk keys</summary><dl id="help-walk"><!-- the keys as set, from settings-ui.js --></dl></details>

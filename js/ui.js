@@ -23,6 +23,7 @@ import { initMatchesUI } from './matches-ui.js';
 import { FEATURES, applyFeatures, siteName, watchSwitch } from './features.js';
 import * as OV from './overlaps.js';
 import { initProfilesUI, saveProfile } from './profiles-ui.js';
+import { initShowcase } from './showcase.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -61,6 +62,7 @@ export function initUI() {
     setOpened: (name, bytes) => { opened = { name, bytes }; },
   }, { mode: FEATURES.matches ? 'game' : 'browser' });
   initProfilesUI({ frameAll: () => tools.frameSelectionOrAll(true) });
+  initShowcase();
   bindProfile();
   bindCustomDialog();
   bindManageDialog();

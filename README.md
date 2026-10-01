@@ -22,6 +22,8 @@ Live at **https://propseteditor.com**.
 - **Sets**: save a group of props, stamp copies, share it as a code.
 - **Overlap warning**: props that clip into each other turn red.
 - **Screenshot**: copy a clean picture of the view.
+- **Showcase**: hide the panels and let the camera circle your props;
+  record a turn as a video to share.
 - Everything autosaves in the browser. Press **?** in the site for all
   controls.
 
@@ -54,6 +56,7 @@ python web/tools/build_assets.py
 | File | What |
 |---|---|
 | `js/viewport.js` | three.js scene, camera, screenshots |
+| `js/showcase.js` | showcase mode and its video |
 | `js/tools.js` | placing, selecting, moving, rotating, arranging |
 | `js/ui.js` | sidebar, panels, import/export |
 | `js/profile.js` | `.propsprofile` read/write |
