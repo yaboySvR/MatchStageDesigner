@@ -16,8 +16,9 @@ Writes web/assets/models/<name>.bin   compact indexed meshes (lowercase names)
 Mesh .bin layout (little-endian):
   char[4] "PPG1" | uint32 vertCount | uint32 indexCount | uint32 indexBytes (2|4)
   float32[vertCount*3] positions (OBJ space, Y-up) | uint16/uint32[indexCount] indices
-Textured props use "PPG2": the same, with float32[vertCount*2] UVs (OBJ's
-vt, v up) between the positions and the indices.
+Textured props use "PPG2": the same, with float32[vertCount*2] UVs (v up)
+between the positions and the indices. Their UVs come from the game's own
+model (game_uvs.py): the OBJs' UVs don't fit the game textures.
 """
 import argparse
 import json
@@ -72,53 +73,90 @@ def find_case_insensitive(folder: Path, name: str):
     return None
 
 
-def convert_obj(src: Path, dst: Path, with_uv=False):
-    positions = []
-    uvs = []
-    indices = []
-    # With UVs, a vertex is a (position, uv) pair, so seams get their own copies.
-    out_pos, out_uv, corners = [], [], {}
+def read_obj(src: Path):
+    """Positions [(x, y, z)], uvs [(u, v)], triangles [((v, vt), (v, vt), (v, vt))]
+    (0-based; vt -1 when a corner has none). Polygons are fanned."""
+    positions, uvs, tris = [], [], []
     with open(src, "r", encoding="utf-8", errors="ignore") as f:
         for line in f:
             if line.startswith("v "):
                 parts = line.split()
-                positions.extend((float(parts[1]), float(parts[2]), float(parts[3])))
+                positions.append((float(parts[1]), float(parts[2]), float(parts[3])))
             elif line.startswith("vt "):
                 parts = line.split()
-                uvs.extend((float(parts[1]), float(parts[2])))
+                uvs.append((float(parts[1]), float(parts[2])))
             elif line.startswith("f "):
-                n, nt = len(positions) // 3, len(uvs) // 2
-                idx = []
+                n, nt = len(positions), len(uvs)
+                corners = []
                 for tok in line.split()[1:]:
                     t = tok.split("/")
                     i = int(t[0])
-                    i = i - 1 if i > 0 else n + i
-                    if with_uv:
-                        j = int(t[1]) if len(t) > 1 and t[1] else 0
-                        j = j - 1 if j > 0 else (nt + j if j < 0 else -1)
-                        k = corners.get((i, j))
-                        if k is None:
-                            k = corners[(i, j)] = len(out_pos) // 3
-                            out_pos.extend(positions[i * 3:i * 3 + 3])
-                            out_uv.extend(uvs[j * 2:j * 2 + 2] if j >= 0 else (0.0, 0.0))
-                        i = k
-                    idx.append(i)
-                for k in range(1, len(idx) - 1):  # triangle fan
-                    indices.extend((idx[0], idx[k], idx[k + 1]))
-    if with_uv:
-        positions = out_pos
+                    j = int(t[1]) if len(t) > 1 and t[1] else 0
+                    corners.append((i - 1 if i > 0 else n + i, j - 1 if j > 0 else (nt + j if j < 0 else -1)))
+                for k in range(1, len(corners) - 1):  # triangle fan
+                    tris.append((corners[0], corners[k], corners[k + 1]))
+    return positions, uvs, tris
 
-    vcount = len(positions) // 3
+
+def convert_obj(src: Path, dst: Path, with_uv=False, corner_uvs=None):
+    """corner_uvs: one (u, v) per triangle corner, in place of the OBJ's own."""
+    positions, uvs, tris = read_obj(src)
+    if with_uv:
+        # A vertex is a (position, uv) pair, so seams get their own copies.
+        out_pos, out_uv, seen, indices = [], [], {}, []
+        for t, tri in enumerate(tris):
+            for c, (i, j) in enumerate(tri):
+                uv = tuple(corner_uvs[t][c]) if corner_uvs is not None else (uvs[j] if j >= 0 else (0.0, 0.0))
+                k = seen.get((i, uv))
+                if k is None:
+                    k = seen[(i, uv)] = len(out_pos)
+                    out_pos.append(positions[i])
+                    out_uv.append(uv)
+                indices.append(k)
+        positions = out_pos
+    else:
+        indices = [i for tri in tris for i, _ in tri]
+
+    vcount = len(positions)
+    flat = [x for p in positions for x in p]
     ibytes = 2 if vcount < 65536 else 4
     dst.parent.mkdir(parents=True, exist_ok=True)
     with open(dst, "wb") as out:
         out.write(b"PPG2" if with_uv else b"PPG1")
         out.write(struct.pack("<III", vcount, len(indices), ibytes))
-        out.write(struct.pack(f"<{len(positions)}f", *positions))
+        out.write(struct.pack(f"<{len(flat)}f", *flat))
         if with_uv:
-            out.write(struct.pack(f"<{len(out_uv)}f", *out_uv))
+            out.write(struct.pack(f"<{len(out_uv) * 2}f", *(x for uv in out_uv for x in uv)))
         out.write(struct.pack(f"<{len(indices)}{'H' if ibytes == 2 else 'I'}", *indices))
     return vcount, len(indices) // 3
+
+
+def game_folder(game_props: Path, prop_id: int):
+    folders = [p for p in game_props.iterdir() if p.is_dir() and p.name.startswith(f"{prop_id:04d}_")]
+    return folders[0] if folders else None
+
+
+def game_corner_uvs(game_props: Path, prop_id: int, srcs):
+    """{bin name: per-corner UVs from the game's model} for one prop's OBJs."""
+    import numpy as np
+    from game_uvs import prop_uvs
+
+    folder = game_folder(game_props, prop_id)
+    mcd = next(folder.glob("*.mcd"), None) if folder else None
+    if not mcd:
+        print(f"  ! no game model for prop {prop_id}")
+        return {}
+    objs = {}
+    for bin_name, src in srcs.items():
+        positions, uvs, tris = read_obj(src)
+        objs[bin_name] = (
+            np.array(positions),
+            np.array([[i for i, _ in t] for t in tris]),
+            np.array([[j for _, j in t] for t in tris]),
+            np.array(uvs),
+        )
+    out = prop_uvs(objs, mcd)
+    return {k: [[(round(float(u), 6), round(float(v), 6)) for u, v in tri] for tri in uv] for k, uv in out.items()}
 
 
 def bin_magic(path: Path):
@@ -130,8 +168,8 @@ def convert_texture(game_props: Path, prop_id: int, dst: Path):
     """The game's design_color.dds of prop <id> -> webp."""
     from PIL import Image
 
-    folders = [p for p in game_props.iterdir() if p.is_dir() and p.name.startswith(f"{prop_id:04d}_")]
-    src = folders[0] / "Textures" / "design_color.dds" if folders else None
+    folder = game_folder(game_props, prop_id)
+    src = folder / "Textures" / "design_color.dds" if folder else None
     if not src or not src.exists():
         print(f"  ! no texture for prop {prop_id}")
         return
@@ -183,6 +221,7 @@ def main():
     # Collect every OBJ the web app needs
     needed = {}  # out bin name -> src path
     with_uv = set()  # bins of textured props
+    game_uvs = {}  # bin name -> per-corner UVs from the game's model
     for env_id, fn in ENV_MODELS.items():
         src = find_case_insensitive(MODELS_SRC, fn)
         if not src:
@@ -213,6 +252,7 @@ def main():
             tex = TEXTURES_OUT / f"{p['key'].lower()}.webp"
             if args.game_props:
                 convert_texture(args.game_props, p["prop_id"], tex)
+                game_uvs.update(game_corner_uvs(args.game_props, p["prop_id"], {b: needed[b] for b in states.values()}))
             if tex.exists():
                 entry["texture"] = tex.name
         icon_png = icon_map.get(p["key"]) or p.get("icon")
@@ -225,10 +265,15 @@ def main():
     for bin_name, src in sorted(needed.items()):
         dst = MODELS_OUT / bin_name
         uv = bin_name in with_uv
-        if dst.exists() and dst.stat().st_mtime >= src.stat().st_mtime and (bin_magic(dst) == b"PPG2") == uv:
-            continue
-        v, t = convert_obj(src, dst, uv)
-        print(f"  {src.name:28s} -> {bin_name:24s} {v:7d} verts {t:7d} tris")
+        if bin_name not in game_uvs:
+            if dst.exists() and dst.stat().st_mtime >= src.stat().st_mtime and (bin_magic(dst) == b"PPG2") == uv:
+                continue
+            if uv and dst.exists() and bin_magic(dst) == b"PPG2":
+                # its UVs came from the game's model; without it, keep them
+                print(f"  ! {bin_name}: OBJ changed; rerun with --game-props to rebuild it")
+                continue
+        v, t = convert_obj(src, dst, uv, game_uvs.get(bin_name))
+        print(f"  {src.name:28s} -> {bin_name:24s} {v:7d} verts {t:7d} tris{'  (game UVs)' if bin_name in game_uvs else ''}")
 
     catalog = {
         "state_definitions": props_json.get("state_definitions", {}),
