@@ -13,6 +13,8 @@ import { siteName } from './features.js';
 const $ = (id) => document.getElementById(id);
 const SPEEDS = { slow: 0.06, normal: 0.12, fast: 0.24 }; // radians per second
 const TURN_SECONDS = 16;                                 // a recorded turn
+const VIDEO_W = 1280, VIDEO_H = 720, VIDEO_FPS = 30;     // small enough to share
+const VIDEO_BITS = 2_000_000;                            // about 4 MB a turn
 const IDLE_MS = 2500;                                    // the bar fades after this
 
 let on = false, playing = true, speed = 'normal';
@@ -144,17 +146,26 @@ function pickType() {
 
 function record() {
   const type = pickType();
-  const canvas = V.renderer.domElement;
-  if (!type || !canvas.captureStream) {
+  // The view is copied, cut to 16:9 from the middle, into a 720p canvas that is recorded.
+  const out = document.createElement('canvas');
+  out.width = VIDEO_W; out.height = VIDEO_H;
+  const ctx = out.getContext('2d');
+  if (!type || !out.captureStream) {
     toast('This browser can’t record video. Chrome or Edge can.', { error: true });
     return;
   }
-  const stream = canvas.captureStream(60);
+  V.onRendered((src) => {
+    const sw = src.width, sh = src.height, k = Math.min(sw / VIDEO_W, sh / VIDEO_H);
+    const cw = VIDEO_W * k, ch = VIDEO_H * k;
+    ctx.drawImage(src, (sw - cw) / 2, (sh - ch) / 2, cw, ch, 0, 0, VIDEO_W, VIDEO_H);
+  });
+  const stream = out.captureStream(VIDEO_FPS);
   const chunks = [];
-  const mr = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 5_000_000 });
+  const mr = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: VIDEO_BITS });
   mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
   rec = { mr, stream, chunks, type, cancelled: false, timer: 0 };
   mr.onstop = () => {
+    V.onRendered(null);
     stream.getTracks().forEach((tr) => tr.stop());
     const r = rec;
     rec = null;

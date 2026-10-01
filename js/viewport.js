@@ -51,6 +51,11 @@ export const onCamera = (fn) => { cameraListener = fn; };
 let frameHook = null;
 export const onFrame = (fn) => { frameHook = fn; };
 
+// Called right after each frame is drawn, while the picture is still there
+// (showcase.js copies it into its 720p recording).
+let renderedHook = null;
+export const onRendered = (fn) => { renderedHook = fn; };
+
 export function initViewport(container) {
   host = container;
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -102,6 +107,7 @@ export function initViewport(container) {
     needsRender = false;
     G.update();
     renderer.render(scene, camera);
+    renderedHook?.(renderer.domElement);
   };
   tick();
 }
