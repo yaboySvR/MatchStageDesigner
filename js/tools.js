@@ -325,9 +325,20 @@ function changeDropHeight(delta) {
 
 // ---------------------------------------------------------------- shared transform helpers
 
+// With auto snapping, where a prop at height z over surface s0 ends up over
+// surface s1: one resting on a surface, or just above it, follows the surface;
+// one up in the air keeps its height, unless that would put it under the new
+// surface (then it keeps its height above that one).
+const FOLLOW = 30; // cm above the surface that still counts as "on it"
+function carriedZ(z, s0, s1) {
+  const lift = z - s0;
+  if (lift <= FOLLOW || z <= s1) return s1 + lift;
+  return z;
+}
+
 // Items remember where each prop started. With auto snapping, a prop resting
 // on a surface re-snaps as it moves, a prop stacked on another moving prop
-// rides along with it, and anything else keeps its height above the surface.
+// rides along with it, and anything else goes by carriedZ.
 function makeItems(props) {
   const exclude = new Set(props.map((p) => p.id));
   const items = props.map((p) => ({
@@ -354,7 +365,7 @@ function placeItems({ items, exclude }, fn, dz = 0) {
   for (const it of items) {
     const base = it.nz ?? it.sz;
     if (!S.autoSnap) it.p.z = base + dz;
-    else if (!it.support) it.p.z = snapZ(it.p.x, it.p.y, exclude) + it.lift + (base - it.sz) + dz;
+    else if (!it.support) it.p.z = carriedZ(it.sz, it.sz - it.lift, snapZ(it.p.x, it.p.y, exclude)) + (base - it.sz) + dz;
   }
   if (!S.autoSnap) return;
   for (const it of items) {
@@ -708,8 +719,8 @@ export function mirrorSelected(which) {
   const copies = src.map((p) => {
     const x = acrossX ? -p.x : p.x, y = acrossX ? p.y : -p.y;
     const [rx, ry, rz] = (acrossX ? mirrorX : mirrorY)(p.rx, p.ry, p.rz);
-    const dz = S.autoSnap ? snapZ(x, y, exclude) - snapZ(p.x, p.y, exclude) : 0;
-    return store.addProp({ key: p.key, state: p.state, x, y, z: p.z + dz, rx, ry, rz });
+    const z = S.autoSnap ? carriedZ(p.z, snapZ(p.x, p.y, exclude), snapZ(x, y, exclude)) : p.z;
+    return store.addProp({ key: p.key, state: p.state, x, y, z, rx, ry, rz });
   });
   S.selected = new Set(copies.map((c) => c.id));
   store.changed();

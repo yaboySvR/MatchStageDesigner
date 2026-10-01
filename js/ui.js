@@ -301,7 +301,7 @@ function renderCard() {
       <div class="fields3">
         ${field('x', 'X', 'x')}
         ${field('y', 'Y', 'y')}
-        ${field('z', 'Z', 'z', { title: S.autoSnap ? 'Height above the surface is kept when the prop moves' : '' })}
+        ${field('z', 'Z', 'z', { title: S.autoSnap ? 'A prop on or just above a surface follows it when moved; one higher up keeps its height' : '' })}
       </div>
       <button type="button" class="text-btn level" data-act="drop" title="Let ${one ? 'it' : 'them'} fall with physics until ${one ? 'it comes' : 'they come'} to rest (End)">⤓ Drop with physics</button>
       <div class="mirror-row"><span>Mirror a copy</span>
