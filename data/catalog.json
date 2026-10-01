@@ -74,6 +74,7 @@
    "states": {
     "Default": "upper_stair.bin"
    },
+   "texture": "steel.webp",
    "icon": "steelstepsupper.webp"
   },
   {
@@ -86,6 +87,7 @@
    "states": {
     "Default": "kendo_stick.bin"
    },
+   "texture": "kendo.webp",
    "icon": "kendostick.webp"
   },
   {
@@ -98,6 +100,7 @@
    "states": {
     "Default": "trash_can.bin"
    },
+   "texture": "trash.webp",
    "icon": "trashcan.webp"
   },
   {
@@ -110,6 +113,7 @@
    "states": {
     "Default": "bw_bat.bin"
    },
+   "texture": "bw.webp",
    "icon": "bw_bat.webp"
   },
   {
@@ -122,6 +126,7 @@
    "states": {
     "Default": "glass.bin"
    },
+   "texture": "glass.webp",
    "icon": "glass.webp"
   },
   {
@@ -134,6 +139,7 @@
    "states": {
     "Default": "lighttube.bin"
    },
+   "texture": "lighttube.webp",
    "icon": "lighttube.webp"
   },
   {
@@ -146,6 +152,7 @@
    "states": {
     "Default": "stop_sign.bin"
    },
+   "texture": "stop.webp",
    "icon": "stopsign.webp"
   },
   {
@@ -158,6 +165,7 @@
    "states": {
     "Default": "safety_cone.bin"
    },
+   "texture": "safety.webp",
    "icon": "safetycone.webp"
   },
   {
@@ -170,6 +178,7 @@
    "states": {
     "Static": "shelve.bin"
    },
+   "texture": "shelf.webp",
    "icon": "shelf.webp"
   },
   {
@@ -182,6 +191,7 @@
    "states": {
     "Default": "sledgehammer.bin"
    },
+   "texture": "sledgehammer.webp",
    "icon": "sledgehammer.webp"
   },
   {
@@ -194,6 +204,7 @@
    "states": {
     "Default": "bat.bin"
    },
+   "texture": "bat.webp",
    "icon": "bat.webp"
   },
   {
@@ -206,6 +217,7 @@
    "states": {
     "Default": "shovel.bin"
    },
+   "texture": "shovel.webp",
    "icon": "shovel.webp"
   },
   {
@@ -218,6 +230,7 @@
    "states": {
     "Default": "hockey_stick.bin"
    },
+   "texture": "hockey_stick.webp",
    "icon": "hockeystick.webp"
   },
   {
@@ -230,6 +243,7 @@
    "states": {
     "Default": "crutch.bin"
    },
+   "texture": "crutch.webp",
    "icon": "crutch.webp"
   },
   {
@@ -242,6 +256,7 @@
    "states": {
     "Default": "shopping_cart.bin"
    },
+   "texture": "shop_cart.webp",
    "icon": "shopping_cart.webp"
   },
   {
@@ -254,6 +269,7 @@
    "states": {
     "Default": "cinderblock.bin"
    },
+   "texture": "cinderblock.webp",
    "icon": "cinderblock.webp"
   },
   {
@@ -266,6 +282,7 @@
    "states": {
     "Default": "thumbtacks_bag.bin"
    },
+   "texture": "tb_bag.webp",
    "icon": "thumbtacks_bag.webp"
   },
   {
@@ -278,6 +295,7 @@
    "states": {
     "Default": "belt_pedestol.bin"
    },
+   "texture": "belt_pedestol.webp",
    "icon": "belt_pedestol.webp"
   },
   {
@@ -290,6 +308,7 @@
    "states": {
     "Default": "silly_hammer.bin"
    },
+   "texture": "silly_hammer.webp",
    "icon": "silly_hammer.webp"
   },
   {
@@ -303,6 +322,7 @@
     "Default": "item_box.bin"
    },
    "unlisted": true,
+   "texture": "item_box.webp",
    "icon": "item_box.webp"
   },
   {
@@ -316,6 +336,7 @@
     "Default": "stun_grenade.bin"
    },
    "unlisted": true,
+   "texture": "stun_grenade.webp",
    "icon": "stun_grenade.webp"
   },
   {
@@ -328,6 +349,7 @@
    "states": {
     "Default": "equip_box.bin"
    },
+   "texture": "equip_box.webp",
    "icon": "equipment_box.webp"
   },
   {
@@ -340,6 +362,7 @@
    "states": {
     "Default": "box.bin"
    },
+   "texture": "cardboard_box.webp",
    "icon": "cardboard_box.webp"
   },
   {
@@ -352,6 +375,10 @@
    "states": {
     "Default": "tombstone.bin"
    },
+   "textures": [
+    "tombstone.webp",
+    "tombstone_1.webp"
+   ],
    "icon": "tombstone.webp"
   },
   {
@@ -376,6 +403,7 @@
    "states": {
     "Default": "lid.bin"
    },
+   "texture": "trash_can_lid.webp",
    "icon": "trashcan_lid.webp"
   },
   {
@@ -388,6 +416,7 @@
    "states": {
     "Default": "bottle.bin"
    },
+   "texture": "bottle.webp",
    "icon": "bottle.webp"
   },
   {
@@ -400,6 +429,7 @@
    "states": {
     "Default": "hhh_hammer.bin"
    },
+   "texture": "hhh_hammer.webp",
    "icon": "hhh_hammer.webp"
   },
   {
@@ -412,6 +442,7 @@
    "states": {
     "Default": "janice.bin"
    },
+   "texture": "janice.webp",
    "icon": "janice.webp"
   },
   {
@@ -424,6 +455,7 @@
    "states": {
     "Default": "baking_tray.bin"
    },
+   "texture": "baking_tray.webp",
    "icon": "baking_tray.webp"
   },
   {
@@ -436,6 +468,7 @@
    "states": {
     "Default": "barrel.bin"
    },
+   "texture": "barrel.webp",
    "icon": "barrel.webp"
   },
   {
@@ -448,6 +481,7 @@
    "states": {
     "Default": "guitar.bin"
    },
+   "texture": "guitar.webp",
    "icon": "guitar.webp"
   },
   {
@@ -460,6 +494,7 @@
    "states": {
     "Default": "casket.bin"
    },
+   "texture": "casket.webp",
    "icon": "casket.webp"
   },
   {
@@ -472,6 +507,7 @@
    "states": {
     "Default": "large_crate.bin"
    },
+   "texture": "large_crate.webp",
    "icon": "large_crate.webp"
   },
   {
@@ -484,6 +520,7 @@
    "states": {
     "Default": "medium_crate.bin"
    },
+   "texture": "medium_crate.webp",
    "icon": "medium_crate.webp"
   },
   {
@@ -496,6 +533,7 @@
    "states": {
     "Default": "small_crate.bin"
    },
+   "texture": "small_crate.webp",
    "icon": "small_crate.webp"
   },
   {
@@ -508,6 +546,7 @@
    "states": {
     "Default": "two_by_four.bin"
    },
+   "texture": "two_by_four.webp",
    "icon": "two_by_four.webp"
   },
   {
@@ -520,6 +559,10 @@
    "states": {
     "Default": "apple.bin"
    },
+   "textures": [
+    "apple.webp",
+    "apple_1.webp"
+   ],
    "icon": "apple.webp"
   },
   {
@@ -532,6 +575,7 @@
    "states": {
     "Default": "football.bin"
    },
+   "texture": "football.webp",
    "icon": "football.webp"
   },
   {
@@ -544,6 +588,7 @@
    "states": {
     "Default": "mecha_sword.bin"
    },
+   "texture": "mecha_sword.webp",
    "icon": "mecha_sword.webp"
   },
   {
@@ -556,6 +601,7 @@
    "states": {
     "Default": "large_door.bin"
    },
+   "texture": "large_door.webp",
    "icon": "large_door.webp"
   },
   {
@@ -568,6 +614,10 @@
    "states": {
     "Default": "chainsaw.bin"
    },
+   "textures": [
+    "chainsaw.webp",
+    "chainsaw_1.webp"
+   ],
    "icon": "chainsaw.webp"
   },
   {
@@ -580,6 +630,7 @@
    "states": {
     "Default": "bludgeon_hammer.bin"
    },
+   "texture": "bludgeon_hammer.webp",
    "icon": "bludgeon_hammer.webp"
   },
   {
@@ -593,6 +644,7 @@
     "Default": "beer_can.bin"
    },
    "unlisted": true,
+   "texture": "beer_can.webp",
    "icon": "beer_can.webp"
   }
  ],

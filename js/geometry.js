@@ -20,22 +20,37 @@ export function makeGeometry(positions, indices, uvs = null) {
 }
 
 // PPG1: positions + indices. PPG2 (textured props): UVs after the positions.
+// PPG3 (more than one texture): PPG2 with the triangles in groups, one per
+// texture (the catalog's "textures", in order).
 function parseBin(buf) {
   const dv = new DataView(buf);
   const magic = String.fromCharCode(dv.getUint8(0), dv.getUint8(1), dv.getUint8(2), dv.getUint8(3));
-  if (magic !== 'PPG1' && magic !== 'PPG2') throw new Error('Bad mesh file');
+  if (magic !== 'PPG1' && magic !== 'PPG2' && magic !== 'PPG3') throw new Error('Bad mesh file');
   const vc = dv.getUint32(4, true);
   const ic = dv.getUint32(8, true);
   const ib = dv.getUint32(12, true);
-  const positions = new Float32Array(buf, 16, vc * 3);
-  let off = 16 + vc * 12;
+  let off = 16;
+  const groups = [];
+  if (magic === 'PPG3') {
+    const n = dv.getUint32(off, true);
+    for (let i = 0; i < n; i++) groups.push(dv.getUint32(off + 4 + i * 4, true));
+    off += 4 + n * 4;
+  }
+  const positions = new Float32Array(buf, off, vc * 3);
+  off += vc * 12;
   let uvs = null;
-  if (magic === 'PPG2') {
+  if (magic !== 'PPG1') {
     uvs = new Float32Array(buf, off, vc * 2);
     off += vc * 8;
   }
   const indices = ib === 2 ? new Uint16Array(buf, off, ic) : new Uint32Array(buf, off, ic);
-  return makeGeometry(positions, indices, uvs);
+  const g = makeGeometry(positions, indices, uvs);
+  let start = 0;
+  groups.forEach((count, i) => {
+    g.addGroup(start, count, i);
+    start += count;
+  });
+  return g;
 }
 
 export function parseObj(text) {

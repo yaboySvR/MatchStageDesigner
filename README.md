@@ -51,10 +51,11 @@ data (`props/Prop_Models`, `icons/`):
 python web/tools/build_assets.py
 ```
 
-The chair, table and ladder use the game's own color textures
-(`assets/textures/`). The chair's and ladder's texture coordinates are read
-from the game's own models (`tools/game_uvs.py`). To remake them, point the script at the game's
-extracted Props folder (needs numpy and Pillow):
+The props use the game's own color textures (`assets/textures/`). Which
+texture goes where comes from the game's own models (`tools/game_models.py`);
+the ladder's and the glass's texture coordinates are read from them too. To
+remake them, point the script at the game's extracted Props folder (needs
+numpy and Pillow):
 
 ```
 python web/tools/build_assets.py --game-props <extracted Props folder>

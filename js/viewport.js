@@ -30,32 +30,61 @@ const MAT = {
   selBad: new THREE.MeshStandardMaterial({ color: 0xff5f3d, emissive: 0x7a1000, roughness: 0.5, ...matOpts }), // selected + overlapping
   ghost: new THREE.MeshBasicMaterial({ color: 0x8be9ff, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide }),
 };
-// Props with the game's own color texture (catalog "texture") get a copy of
-// each look above with the texture on it, one set per prop. Until the
-// texture has arrived they keep the plain look.
+// Props with the game's own color textures (catalog "textures") get a copy of
+// each look above with the texture on it, one set per prop. A prop with more
+// than one texture gets a list of them, one per group of its mesh (a null
+// texture keeps that part plain). Until the textures have arrived the prop
+// keeps the plain look.
 const SKINNED = ['prop', 'sel', 'hover', 'bad', 'selBad'];
 const skins = new Map(); // prop key -> { ready, prop, sel, ... } or null
+const maps = new Map(); // texture file -> { map, ready, waiting: [fn] }
 let texLoader = null;
+
+function textureOf(file) {
+  let t = maps.get(file);
+  if (!t) {
+    texLoader ??= new THREE.TextureLoader();
+    t = { ready: false, waiting: [] };
+    t.map = texLoader.load(`assets/textures/${file}`, () => {
+      t.ready = true;
+      for (const fn of t.waiting.splice(0)) fn();
+    }, undefined, (e) => console.error(e));
+    t.map.colorSpace = THREE.SRGBColorSpace;
+    t.map.wrapS = t.map.wrapT = THREE.RepeatWrapping; // UVs can go past 1
+    t.map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    maps.set(file, t);
+  }
+  return t;
+}
+
 function skinOf(key) {
   if (skins.has(key)) return skins.get(key);
-  const file = getProp(key)?.texture;
+  const files = getProp(key)?.textures;
   let skin = null;
-  if (file) {
-    texLoader ??= new THREE.TextureLoader();
+  if (files?.some(Boolean)) {
     skin = { ready: false };
-    const map = texLoader.load(`assets/textures/${file}`, () => {
-      skin.ready = true;
-      for (const [id, mesh] of propMeshes) mesh.material = materialFor(id);
-      requestRender();
-    }, undefined, (e) => console.error(e));
-    map.colorSpace = THREE.SRGBColorSpace;
-    map.wrapS = map.wrapT = THREE.RepeatWrapping; // the table's UVs go past 1
-    map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    const parts = files.map((file) => file && textureOf(file));
     for (const k of SKINNED) {
-      skin[k] = MAT[k].clone();
-      skin[k].map = map;
+      const list = parts.map((t) => {
+        if (!t) return MAT[k];
+        const m = MAT[k].clone();
+        m.map = t.map;
+        if (k === 'prop') m.color.set(0xffffff);
+        return m;
+      });
+      skin[k] = list.length === 1 ? list[0] : list;
     }
-    skin.prop.color.set(0xffffff);
+    const pending = parts.filter((t) => t && !t.ready);
+    let left = pending.length;
+    skin.ready = !left;
+    for (const t of pending) {
+      t.waiting.push(() => {
+        if (--left) return;
+        skin.ready = true;
+        for (const [id, mesh] of propMeshes) mesh.material = materialFor(id);
+        requestRender();
+      });
+    }
   }
   skins.set(key, skin);
   return skin;
