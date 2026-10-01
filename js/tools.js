@@ -17,7 +17,7 @@ import * as store from './store.js';
 import * as P from './physics.js';
 import * as W from './walk.js';
 import { isWalkStart, walkKeyLabels } from './settings.js';
-import { snapZ } from './snapping.js';
+import { snapZ, cellRoof } from './snapping.js';
 import { getGeometry, geomNow, spanAlong, heightOf, footprintOf } from './geometry.js';
 import { getProp } from './catalog.js';
 import { placeSet } from './sets.js';
@@ -137,6 +137,12 @@ function groundPoint(cx, cy) {
   const p = V.rayToPlaneZ(cx, cy, 0);
   if (!p) return null;
   if (!S.autoSnap) return { x: p.x, y: p.y, z: 0, plane: 0 };
+  // Hell in a Cell: a click on the (solid) cage roof goes on the roof
+  const roof = cellRoof();
+  if (roof && V.camera.position.z > roof.z) {
+    const r = V.rayToPlaneZ(cx, cy, roof.z);
+    if (r && roof.contains(r.x, r.y)) return { x: r.x, y: r.y, z: roof.z, plane: roof.z };
+  }
   const z = snapZ(p.x, p.y);
   if (z !== 0) {
     const p2 = V.rayToPlaneZ(cx, cy, z);
