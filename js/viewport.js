@@ -534,11 +534,19 @@ export function frameProps(ids) {
 
 // Showcase framing: the props and the ring (or the arena's own model) together,
 // with a little room around them.
+const SHOWCASE_TOP = 650; // cm, about a cage's height
 export function frameScene() {
   const box = new THREE.Box3();
   for (const m of propMeshes.values()) box.expandByObject(m);
-  const arena = ['ec', 'hiac', 'wg', 'amb', 'ringmat'].map((id) => envMeshes[id]).find((m) => m?.visible);
-  if (arena) box.expandByObject(arena);
+  // the arena models that show (the ring, a cage, the ambulance), up to cage
+  // height: the chamber's hanging cables reach 18 m
+  for (const id of ['ringmat', 'ec', 'hiac', 'wg', 'amb']) {
+    const m = envMeshes[id];
+    if (!m?.visible) continue;
+    const a = new THREE.Box3().setFromObject(m);
+    a.max.z = Math.min(a.max.z, SHOWCASE_TOP);
+    box.union(a);
+  }
   if (box.isEmpty()) return;
   const c = box.getCenter(new THREE.Vector3()), half = box.getSize(new THREE.Vector3()).multiplyScalar(0.36);
   fitBox(new THREE.Box3(c.clone().sub(half), c.clone().add(half)));
