@@ -56,6 +56,13 @@ export const onFrame = (fn) => { frameHook = fn; };
 let renderedHook = null;
 export const onRendered = (fn) => { renderedHook = fn; };
 
+// Draw the view right now and hand back the canvas (showcase recording).
+export function renderNow() {
+  G.update();
+  renderer.render(scene, camera);
+  return renderer.domElement;
+}
+
 export function initViewport(container) {
   host = container;
   renderer = new THREE.WebGLRenderer({ antialias: true });
