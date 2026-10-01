@@ -14,7 +14,7 @@ const $ = (id) => document.getElementById(id);
 const SPEEDS = { slow: 0.06, normal: 0.12, fast: 0.24 }; // radians per second
 const TURN_SECONDS = 10;                                 // a recorded turn
 const VIDEO_W = 1280, VIDEO_H = 720, VIDEO_FPS = 30;     // small enough to share
-const VIDEO_BITS = 1_200_000;                            // about 1.5 MB a turn
+const VIDEO_BITS = 2_500_000;                            // about 3 MB a turn
 const IDLE_MS = 2500;                                    // the bar fades after this
 
 let on = false, playing = true, speed = 'normal';
@@ -139,10 +139,10 @@ function wake() {
 
 // ---------------------------------------------------------------- recording
 
-// The video: 720p, 30 fps, one 10-second turn, a fixed low bitrate.
+// The video: 720p, 30 fps, one 10-second turn, a fixed bitrate (about 3 MB).
 // Where the browser can (WebCodecs), every frame is drawn and encoded one by
-// one at a set bitrate: smooth on any computer, and the size is known
-// (about 1.5 MB). Elsewhere, MediaRecorder records the turn as it plays.
+// one at a set bitrate: smooth on any computer, and the size is known.
+// Elsewhere, MediaRecorder records the turn as it plays.
 
 const what = () => (S.profile ? S.profile.replace(/\.propsprofile$/i, '') : S.match ? M.matchName(S.match) : 'Free design');
 
@@ -156,10 +156,11 @@ function copyInto(ctx, src) {
 async function encoderConfig() {
   if (!window.VideoEncoder || !window.VideoFrame) return null;
   const base = { width: VIDEO_W, height: VIDEO_H, bitrate: VIDEO_BITS, bitrateMode: 'constant', framerate: VIDEO_FPS, avc: { format: 'avc' } };
+  // The graphics card's encoder looks much better at this size (tested: about
+  // 5 dB PSNR over the software one); the software one gets a little more room.
   const tries = [];
-  for (const codec of ['avc1.4d0028', 'avc1.42001f']) {
-    tries.push({ ...base, codec, hardwareAcceleration: 'prefer-software' }, { ...base, codec });
-  }
+  for (const codec of ['avc1.640028', 'avc1.4d0028']) tries.push({ ...base, codec, hardwareAcceleration: 'prefer-hardware' });
+  for (const codec of ['avc1.640028', 'avc1.4d0028', 'avc1.42001f']) tries.push({ ...base, codec, bitrate: 3_000_000, hardwareAcceleration: 'prefer-software' }, { ...base, codec });
   for (const c of tries) {
     try {
       if ((await VideoEncoder.isConfigSupported(c)).supported) return c;
@@ -184,6 +185,7 @@ async function recordFrames(config) {
   const out = document.createElement('canvas');
   out.width = VIDEO_W; out.height = VIDEO_H;
   const ctx = out.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
   const muxer = new Muxer({ target: new ArrayBufferTarget(), video: { codec: 'avc', width: VIDEO_W, height: VIDEO_H, frameRate: VIDEO_FPS }, fastStart: 'in-memory' });
   let failed = null;
   const enc = new VideoEncoder({ output: (chunk, meta) => muxer.addVideoChunk(chunk, meta), error: (e) => { failed = e; } });
