@@ -17,8 +17,9 @@ Mesh .bin layout (little-endian):
   char[4] "PPG1" | uint32 vertCount | uint32 indexCount | uint32 indexBytes (2|4)
   float32[vertCount*3] positions (OBJ space, Y-up) | uint16/uint32[indexCount] indices
 Textured props use "PPG2": the same, with float32[vertCount*2] UVs (v up)
-between the positions and the indices. Their UVs come from the game's own
-model (game_uvs.py): the OBJs' UVs don't fit the game textures.
+between the positions and the indices. For UVS_FROM_GAME props the UVs come
+from the game's own model (game_uvs.py): their OBJs' UVs don't fit the game
+textures.
 """
 import argparse
 import json
@@ -55,6 +56,9 @@ ICON_SIZE = 256
 
 # Props drawn with the game's own color texture (their OBJs carry the game UVs).
 TEXTURED = {"CHAIR", "TABLE", "LADDER"}
+# Of those, the ones whose OBJ UVs don't fit the game texture: their UVs are
+# read from the game's model instead (game_uvs.py). The table's OBJ UVs fit.
+UVS_FROM_GAME = {"CHAIR", "LADDER"}
 TEXTURE_SIZE = 1024
 
 # Props in props.json that the web app leaves out (commentary table + cover).
@@ -222,6 +226,7 @@ def main():
     needed = {}  # out bin name -> src path
     with_uv = set()  # bins of textured props
     game_uvs = {}  # bin name -> per-corner UVs from the game's model
+    from_game = set()  # bins whose UVs come from the game's model
     for env_id, fn in ENV_MODELS.items():
         src = find_case_insensitive(MODELS_SRC, fn)
         if not src:
@@ -252,6 +257,9 @@ def main():
             tex = TEXTURES_OUT / f"{p['key'].lower()}.webp"
             if args.game_props:
                 convert_texture(args.game_props, p["prop_id"], tex)
+            if p["key"] in UVS_FROM_GAME:
+                from_game.update(states.values())
+            if args.game_props and p["key"] in UVS_FROM_GAME:
                 game_uvs.update(game_corner_uvs(args.game_props, p["prop_id"], {b: needed[b] for b in states.values()}))
             if tex.exists():
                 entry["texture"] = tex.name
@@ -268,7 +276,7 @@ def main():
         if bin_name not in game_uvs:
             if dst.exists() and dst.stat().st_mtime >= src.stat().st_mtime and (bin_magic(dst) == b"PPG2") == uv:
                 continue
-            if uv and dst.exists() and bin_magic(dst) == b"PPG2":
+            if bin_name in from_game and dst.exists() and bin_magic(dst) == b"PPG2":
                 # its UVs came from the game's model; without it, keep them
                 print(f"  ! {bin_name}: OBJ changed; rerun with --game-props to rebuild it")
                 continue
