@@ -8,9 +8,10 @@ import { catalog, getProp } from './catalog.js';
 
 const cache = new Map(); // id -> { promise, geom, failed }
 
-export function makeGeometry(positions, indices) {
+export function makeGeometry(positions, indices, uvs = null) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  if (uvs) g.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
   g.setIndex(new THREE.BufferAttribute(indices, 1));
   g.rotateX(Math.PI / 2); // OBJ (x, y, z) -> Blender (x, -z, y)
   g.computeBoundingBox();
@@ -18,17 +19,23 @@ export function makeGeometry(positions, indices) {
   return g;
 }
 
+// PPG1: positions + indices. PPG2 (textured props): UVs after the positions.
 function parseBin(buf) {
   const dv = new DataView(buf);
   const magic = String.fromCharCode(dv.getUint8(0), dv.getUint8(1), dv.getUint8(2), dv.getUint8(3));
-  if (magic !== 'PPG1') throw new Error('Bad mesh file');
+  if (magic !== 'PPG1' && magic !== 'PPG2') throw new Error('Bad mesh file');
   const vc = dv.getUint32(4, true);
   const ic = dv.getUint32(8, true);
   const ib = dv.getUint32(12, true);
   const positions = new Float32Array(buf, 16, vc * 3);
-  const off = 16 + vc * 12;
+  let off = 16 + vc * 12;
+  let uvs = null;
+  if (magic === 'PPG2') {
+    uvs = new Float32Array(buf, off, vc * 2);
+    off += vc * 8;
+  }
   const indices = ib === 2 ? new Uint16Array(buf, off, ic) : new Uint32Array(buf, off, ic);
-  return makeGeometry(positions, indices);
+  return makeGeometry(positions, indices, uvs);
 }
 
 export function parseObj(text) {

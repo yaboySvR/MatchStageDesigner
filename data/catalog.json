@@ -19,6 +19,7 @@
     "Set Up CHAIR": "chair.bin",
     "Default": "ground_chair.bin"
    },
+   "texture": "chair.webp",
    "icon": "chair_folded.webp",
    "alt_icon": {
     "state": "Set Up CHAIR",
@@ -37,6 +38,7 @@
     "Set Up": "table.bin",
     "Default": "ground_table.bin"
    },
+   "texture": "table.webp",
    "icon": "table_ground.webp",
    "alt_icon": {
     "state": "Set Up",
@@ -55,6 +57,7 @@
     "Set Up": "ladder.bin",
     "Default": "ground_ladder.bin"
    },
+   "texture": "ladder.webp",
    "icon": "ladder_ground.webp",
    "alt_icon": {
     "state": "Set Up",

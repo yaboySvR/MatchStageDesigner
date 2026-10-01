@@ -8,6 +8,7 @@ import { S } from './state.js';
 import { getGeometry, geomNow, geomFailed, loadEnvGeometry } from './geometry.js';
 import { profileToMatrix } from './rotation.js';
 import * as G from './gizmo.js';
+import { getProp } from './catalog.js';
 
 const DEG = Math.PI / 180;
 
@@ -29,6 +30,41 @@ const MAT = {
   selBad: new THREE.MeshStandardMaterial({ color: 0xff5f3d, emissive: 0x7a1000, roughness: 0.5, ...matOpts }), // selected + overlapping
   ghost: new THREE.MeshBasicMaterial({ color: 0x8be9ff, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide }),
 };
+// Props with the game's own color texture (catalog "texture") get a copy of
+// each look above with the texture on it, one set per prop. Until the
+// texture has arrived they keep the plain look.
+const SKINNED = ['prop', 'sel', 'hover', 'bad', 'selBad'];
+const skins = new Map(); // prop key -> { ready, prop, sel, ... } or null
+let texLoader = null;
+function skinOf(key) {
+  if (skins.has(key)) return skins.get(key);
+  const file = getProp(key)?.texture;
+  let skin = null;
+  if (file) {
+    texLoader ??= new THREE.TextureLoader();
+    skin = { ready: false };
+    const map = texLoader.load(`assets/textures/${file}`, () => {
+      skin.ready = true;
+      for (const [id, mesh] of propMeshes) mesh.material = materialFor(id);
+      requestRender();
+    }, undefined, (e) => console.error(e));
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.wrapS = map.wrapT = THREE.RepeatWrapping; // the table's UVs go past 1
+    map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    for (const k of SKINNED) {
+      skin[k] = MAT[k].clone();
+      skin[k].map = map;
+    }
+    skin.prop.color.set(0xffffff);
+  }
+  skins.set(key, skin);
+  return skin;
+}
+const look = (key, k) => {
+  const skin = key != null && skinOf(key);
+  return skin?.ready ? skin[k] : MAT[k];
+};
+
 const ENV_STYLE = {
   ringmat:   { color: 0x31568f },
   barricade: { color: 0x3b3e49 },
@@ -220,12 +256,13 @@ export function setClean(on) {
   requestRender();
 }
 
-const materialFor = (id) => {
-  if (clean) return MAT.prop;
-  if (S.selected.has(id)) return overlapIds.has(id) ? MAT.selBad : MAT.sel;
-  if (id === hoverId) return MAT.hover;
-  return overlapIds.has(id) ? MAT.bad : MAT.prop;
+const lookFor = (id) => {
+  if (clean) return 'prop';
+  if (S.selected.has(id)) return overlapIds.has(id) ? 'selBad' : 'sel';
+  if (id === hoverId) return 'hover';
+  return overlapIds.has(id) ? 'bad' : 'prop';
 };
+const materialFor = (id) => look(propMeshes.get(id)?.userData.key, lookFor(id));
 
 export function setOverlaps(ids) {
   overlapIds = ids;
@@ -274,6 +311,7 @@ export function syncProps() {
     } else if (!mesh) {
       mesh = new THREE.Mesh(geom, MAT.prop);
       mesh.userData.id = p.id;
+      mesh.userData.key = p.key;
       propMeshes.set(p.id, mesh);
       scene.add(mesh);
     } else if (mesh.geometry !== geom) {
@@ -378,7 +416,7 @@ export function screenshot(longEdge = 2560) {
   const showHandles = G.hideForPicture();
   const aids = [...ghostMeshes, ...dropGuides.flatMap((g) => [g.line, g.ring])].filter((o) => o.visible);
   for (const o of aids) o.visible = false;
-  for (const mesh of propMeshes.values()) mesh.material = MAT.prop;
+  for (const mesh of propMeshes.values()) mesh.material = look(mesh.userData.key, 'prop');
   const ratio = renderer.getPixelRatio();
   renderer.setPixelRatio(1);
   renderer.setSize(W, H, false);
@@ -420,7 +458,7 @@ export function renderThumbnail(items, size = 192) {
   for (const it of items) {
     const g = geomNow(it.key, it.state);
     if (!g) continue;
-    const m = new THREE.Mesh(g, MAT.prop);
+    const m = new THREE.Mesh(g, look(it.key, 'prop'));
     place(m, it);
     m.updateMatrixWorld();
     box.expandByObject(m);

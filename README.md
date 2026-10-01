@@ -51,6 +51,14 @@ data (`props/Prop_Models`, `icons/`):
 python web/tools/build_assets.py
 ```
 
+The chair, table and ladder use the game's own color textures
+(`assets/textures/`). To remake them, point the script at the game's
+extracted Props folder:
+
+```
+python web/tools/build_assets.py --game-props <extracted Props folder>
+```
+
 ## Code
 
 | File | What |

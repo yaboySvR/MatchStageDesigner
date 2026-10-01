@@ -33,6 +33,7 @@ function register(p, custom = null) {
     defaultState: 'Default' in states ? 'Default' : stateOrder[0],
     icon: p.icon ? (custom ? p.icon : `assets/icons/${p.icon}`) : null,
     altIcon: p.alt_icon ? { state: p.alt_icon.state, icon: `assets/icons/${p.alt_icon.icon}` } : null,
+    texture: custom ? null : p.texture || null, // the game's color texture (viewport.js)
     unlistedDefault: !!p.unlisted,
     custom,
   };
