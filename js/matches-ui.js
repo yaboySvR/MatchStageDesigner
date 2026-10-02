@@ -90,6 +90,8 @@ function applyMatch({ file, bytes, env } = {}) {
 
 function sync() {
   $('match-select').value = S.match || '';
+  // a match comes with its own arena: the arena buttons are for free design
+  $('env-seg').hidden = !!S.match;
   for (const id of ['match-select', 'match-prev', 'match-next']) $(id).disabled = busy;
 }
 
