@@ -104,10 +104,18 @@ const ENV_STYLE = {
   hiac:      { color: 0x8d949f, metalness: 0.4 },
   wg:        { color: 0x9aa1ad, metalness: 0.4 },
   amb:       { color: 0xe4e4e8 },
+  hiac_ring: { color: 0x31568f },
+  wg_ring:   { color: 0x31568f },
+  ec_ring:   { color: 0x31568f },
 };
 // The arena piece each arena shows besides the ring (the steel cage, the
 // ambulance, ... stand where their match puts them).
 const ENV_PIECE = { EC: 'ec', HIAC: 'hiac', WG: 'wg', AMB: 'amb', CAGE: 'cage', DUMPSTER: 'dumpster', CASKET: 'casket' };
+// The cells' own ring(s), split off their models (build_assets.py), go with them.
+const piecesOf = (env) => {
+  const id = ENV_PIECE[env];
+  return !id ? [] : catalog.envModels[`${id}_ring`] ? [id, `${id}_ring`] : [id];
+};
 // these have a ring of their own
 const OWN_RING = new Set(['EC', 'HIAC', 'WG']);
 
@@ -243,7 +251,7 @@ export function ensureEnv(id) {
 
 export function envModelsFor(env) {
   const need = ['floor', 'barricade', 'ringmat'];
-  if (ENV_PIECE[env]) need.push(ENV_PIECE[env]);
+  need.push(...piecesOf(env));
   if (S.stage) need.push('ramp', 'stage');
   return need;
 }
@@ -259,7 +267,7 @@ export function applyEnvState() {
     ramp: S.stage,
     stage: S.stage,
   };
-  if (ENV_PIECE[S.env]) vis[ENV_PIECE[S.env]] = true;
+  for (const id of piecesOf(S.env)) vis[id] = true;
   for (const [id, mesh] of Object.entries(envMeshes)) {
     mesh.visible = !!vis[id];
     const xray = S.xray && id !== 'floor';
@@ -663,7 +671,7 @@ export function frameScene() {
   for (const m of propMeshes.values()) box.expandByObject(m);
   // the arena models that show (the ring, a cage, the ambulance...), up to cage
   // height: the chamber's hanging cables reach 18 m
-  for (const id of ['ringmat', ...Object.values(ENV_PIECE)]) {
+  for (const id of ['ringmat', ...piecesOf(S.env)]) {
     const m = envMeshes[id];
     if (!m?.visible) continue;
     const a = new THREE.Box3().setFromObject(m);

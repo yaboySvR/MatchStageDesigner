@@ -154,10 +154,11 @@ export function snapZ(x, y, exclude = null) {
   }
   const fallback = () => stageTop(x, y) ?? 0.0;
   switch (S.env) {
+    // the ring(s) are a piece of their own next to the cell (when there's one)
     case 'EC':
-      return ringTop('ec', x, y) ?? fallback();
+      return ringTop('ec_ring', x, y) ?? ringTop('ec', x, y) ?? fallback();
     case 'WG':
-      return ringTop('wg', x, y) ?? fallback();
+      return ringTop('wg_ring', x, y) ?? ringTop('wg', x, y) ?? fallback();
     case 'HIAC':
       // Inside the cell is the floor; the roof is only for clicks on it (cellRoof).
       return ringTop('ringmat', x, y) ?? fallback();

@@ -660,7 +660,10 @@
   "amb": "env_amb.bin",
   "cage": "env_cage.bin",
   "dumpster": "env_dumpster.bin",
-  "casket": "env_casket.bin"
+  "casket": "env_casket.bin",
+  "hiac_ring": "env_hiac_ring.bin",
+  "wg_ring": "env_wg_ring.bin",
+  "ec_ring": "env_ec_ring.bin"
  },
  "env_textures": {
   "amb": [
@@ -726,6 +729,108 @@
    {
     "file": "env_casket_1.webp",
     "alpha": "cut"
+   }
+  ],
+  "hiac": [
+   {
+    "file": "env_hiac.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_hiac_1.webp",
+    "alpha": "fence"
+   }
+  ],
+  "wg": [
+   {
+    "file": "env_wg.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_wg_1.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_wg_1.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_wg_2.webp",
+    "alpha": "cut"
+   },
+   {
+    "file": "env_wg_3.webp",
+    "alpha": "fence"
+   },
+   {
+    "file": "env_wg_4.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_wg_5.webp",
+    "alpha": null
+   }
+  ],
+  "ec": [
+   {
+    "file": "env_ec.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_ec_1.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_ec_2.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_ec_3.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_ec_4.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_ec_5.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_ec_6.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_ec_7.webp",
+    "alpha": "fence"
+   },
+   {
+    "file": "env_ec_8.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_ec_9.webp",
+    "alpha": "glass"
+   },
+   {
+    "file": "env_ec_5.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_ec_5.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_ec_5.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_ec_10.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_ec_5.webp",
+    "alpha": null
    }
   ]
  }

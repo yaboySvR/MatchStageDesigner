@@ -27,7 +27,7 @@ by the UVs the resting OBJ already got.
         then verts * size bytes, padded to 4; u32 verts, u32 streams just
         before a mesh's first stream (POSITION float3; TEXCOORD float2, v down)
   LODs: u32 lods, u32 meshes, then per LOD, per mesh: u16 mesh, u32 count,
-        u16 indices, pad to 4, u32 n, n * (u32 material, start, count, max
+        u16 indices (u32 past 65535 vertices), pad to 4, u32 n, n * (u32 material, start, count, max
         vertex), u32 0, "ENDM", u32 0
 .mtls: "MTLs", u32 n, the material names, then one "MTL!" block each that
   names its textures (<name>_color, <name>_nrm, ...).
@@ -82,7 +82,7 @@ def _lod_blocks(b, lo, size):
         p = e + 4
         if struct.unpack("<I", b[e - 4:e])[0] != 0:
             continue
-        for k in range(1, 17):
+        for k in range(1, 65):
             a = e - 4 - 16 * k - 4
             if struct.unpack("<I", b[a:a + 4])[0] != k:
                 continue
@@ -90,11 +90,12 @@ def _lod_blocks(b, lo, size):
             if subs[0][1] != 0 or any(subs[i][1] != subs[i - 1][1] + subs[i - 1][2] for i in range(1, k)):
                 continue
             total = sum(s[2] for s in subs)
-            for pad in (0, 2):
-                s = a - pad - 2 * total
+            # u16 indices, or u32 ones (meshes past 65535 vertices)
+            for width, pad in ((2, 0), (2, 2), (4, 0), (4, 2)):
+                s = a - pad - width * total
                 if s - 6 >= lo and struct.unpack("<I", b[s - 4:s])[0] == total:
                     mesh = struct.unpack("<H", b[s - 6:s - 4])[0]
-                    out.append((mesh, np.frombuffer(b, "<u2", total, s).astype(int), subs))
+                    out.append((mesh, np.frombuffer(b, f"<u{width}", total, s).astype(int), subs))
                     break
             else:
                 continue

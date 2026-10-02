@@ -62,15 +62,21 @@ ENV_MODELS = {
 
 # Arena pieces made from the game's own model (with its textures), where the
 # match's vanilla prop set puts them: web id -> (game prop id, game position
-# x, y, z, turn round the game's y in degrees). The steel cage isn't in its
-# prop set (the game brings it), so it stands at the centre. Needs
-# --game-props; "amb" falls back to its OBJ until then.
+# x, y, z, turn round the game's y in degrees). The cages aren't in their
+# prop sets (the game brings them), so they stand at the centre. Needs
+# --game-props; until then the ones with an OBJ (ENV_MODELS) use it.
 GAME_ENV = {
     "amb": (6454, (77.4000015258789, 0, 1180), 180),
     "cage": (2064, (0, 0, 0), 0),
     "dumpster": (9300, (0, 0, 364.01239013671875), 0),
     "casket": (9299, (0, 0, 364.01239013671875), 0),
+    "hiac": (2065, (0, 0, 0), 0),
+    "wg": (2080, (0, 0, 0), 0),
+    "ec": (6312, (0, 0, 0), 0),
 }
+# Their OBJs have the ring in them too (WarGames: both), which the game's
+# models don't: it's split off into a piece of its own.
+RING_IN_OBJ = {"hiac", "wg", "ec"}
 
 ICON_SIZE = 256
 
@@ -196,16 +202,28 @@ def convert_texture(src: Path, dst: Path, cutout=False):
     return cutout or None
 
 
-def build_env(env_id, folder: Path, position, turn):
+def build_env(env_id, folder: Path, position, turn, obj: Path = None):
     """An arena piece from the game's model: writes env_<id>.bin and its
     textures; returns its catalog "env_textures" list, one per group:
     {"file", "alpha": "cut" (see-through parts) | "fence" (mostly
     see-through) | "glass" | None} or None
-    (left plain)."""
+    (left plain).
+    obj: the add-on's OBJ of it, which also has the ring(s) in it (the game's
+    model doesn't): what of the OBJ isn't the game's model goes to
+    env_<id>_ring.bin, untouched."""
     import numpy as np
     from game_models import env_model
 
     pos, uv, tris, group, mats = env_model(folder, position, turn)
+    if obj:
+        opos, _, otris = read_obj(obj)
+        cell = set(map(tuple, pos.round(1).tolist()))
+        inside = [tuple(v) in cell for v in np.round(opos, 1).tolist()]
+        ring = [i for tri in otris if not all(inside[i] for i, _ in tri) for i, _ in tri]
+        used = sorted(set(ring))
+        at = {i: k for k, i in enumerate(used)}
+        v, t = write_bin(MODELS_OUT / f"env_{env_id}_ring.bin", [opos[i] for i in used], [at[i] for i in ring])
+        print(f"  {obj.name:34s} -> env_{env_id}_ring.bin {v:7d} verts {t:7d} tris (its ring)")
     order = np.argsort(group, kind="stable")
     counts = [int((group == i).sum()) * 3 for i in range(len(mats))]
     v, t = write_bin(MODELS_OUT / f"env_{env_id}.bin", pos.tolist(), tris[order].ravel().tolist(), uv.tolist(), counts)
@@ -304,15 +322,19 @@ def main():
             continue
         needed[f"env_{env_id}.bin"] = src
     env_textures = {}
+    env_rings = []  # the rings split off the cages' OBJs (build_env)
     for env_id, (prop_id, position, turn) in GAME_ENV.items():
         folder = game_folder(args.game_props, prop_id) if args.game_props else None
+        obj = needed.get(f"env_{env_id}.bin") if env_id in RING_IN_OBJ else None
         if folder:
-            env_textures[env_id] = build_env(env_id, folder, position, turn)
+            env_textures[env_id] = build_env(env_id, folder, position, turn, obj)
         elif env_id in old_data.get("env_textures", {}) and (MODELS_OUT / f"env_{env_id}.bin").exists():
             env_textures[env_id] = old_data["env_textures"][env_id]
         else:
             continue
         needed.pop(f"env_{env_id}.bin", None)
+        if obj:
+            env_rings.append(f"{env_id}_ring")
 
     props_out = []
     for p in props_json.get("props", []):
@@ -365,7 +387,7 @@ def main():
     catalog = {
         "state_definitions": props_json.get("state_definitions", {}),
         "props": props_out,
-        "env_models": {k: f"env_{k}.bin" for k in [*ENV_MODELS, *(k for k in env_textures if k not in ENV_MODELS)]},
+        "env_models": {k: f"env_{k}.bin" for k in [*ENV_MODELS, *(k for k in env_textures if k not in ENV_MODELS), *env_rings]},
         "env_textures": env_textures,
     }
     DATA_OUT.mkdir(parents=True, exist_ok=True)
