@@ -40,7 +40,8 @@ const skins = new Map(); // prop key -> { ready, prop, sel, ... } or null
 const maps = new Map(); // texture file -> { map, ready, waiting: [fn] }
 let texLoader = null;
 
-function textureOf(file) {
+// color: false for a bump (normal) map, whose values aren't colors.
+function textureOf(file, color = true) {
   let t = maps.get(file);
   if (!t) {
     texLoader ??= new THREE.TextureLoader();
@@ -49,7 +50,7 @@ function textureOf(file) {
       t.ready = true;
       for (const fn of t.waiting.splice(0)) fn();
     }, undefined, (e) => console.error(e));
-    t.map.colorSpace = THREE.SRGBColorSpace;
+    t.map.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
     t.map.wrapS = t.map.wrapT = THREE.RepeatWrapping; // UVs can go past 1
     t.map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     maps.set(file, t);
@@ -59,22 +60,27 @@ function textureOf(file) {
 
 function skinOf(key) {
   if (skins.has(key)) return skins.get(key);
-  const files = getProp(key)?.textures;
+  const pd = getProp(key);
+  const files = pd?.textures;
   let skin = null;
   if (files?.some(Boolean)) {
     skin = { ready: false };
     const parts = files.map((file) => file && textureOf(file));
+    const bump = pd.normal && textureOf(pd.normal, false);
     for (const k of SKINNED) {
       const list = parts.map((t) => {
         if (!t) return MAT[k];
         const m = MAT[k].clone();
         m.map = t.map;
+        if (bump) m.normalMap = bump.map;
         if (k === 'prop') m.color.set(0xffffff);
+        // see-through in its own look; selected, hovered or red it shows whole
+        if (k === 'prop' && pd.opacity < 1) Object.assign(m, { transparent: true, opacity: pd.opacity, depthWrite: false });
         return m;
       });
       skin[k] = list.length === 1 ? list[0] : list;
     }
-    const pending = parts.filter((t) => t && !t.ready);
+    const pending = [...parts, bump].filter((t) => t && !t.ready);
     let left = pending.length;
     skin.ready = !left;
     for (const t of pending) {
@@ -402,7 +408,7 @@ export async function preloadProps() {
     if (pd.custom) continue;
     jobs.push(() => new Promise((resolve) => {
       const skin = skinOf(pd.key);
-      const maps = (pd.textures || []).filter(Boolean).map(textureOf).filter((t) => !t.ready);
+      const maps = [...(pd.textures || []).filter(Boolean).map((f) => textureOf(f)), ...(pd.normal ? [textureOf(pd.normal, false)] : [])].filter((t) => !t.ready);
       let left = maps.length + 1;
       const done = () => { if (--left <= 0) resolve(); };
       setTimeout(resolve, 20000); // a texture that never comes doesn't hold up the rest

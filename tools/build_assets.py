@@ -85,6 +85,12 @@ ICON_SIZE = 256
 UVS_FROM_GAME = {"LADDER", "GLASS"}
 # Props left in their plain color.
 NO_TEXTURE = set()
+# Props whose game color texture is one flat color, the look being in the
+# rest of the material: the bump (normal) map gets used too, and its alpha
+# (the seams) darkens the color (the steel steps' diamond plate).
+NORMAL_MAPS = {"STEEL"}
+# See-through props: as see-through as their game texture's alpha says.
+SEE_THROUGH = {"GLASS"}
 TEXTURE_SIZE = 1024
 
 # Props in props.json that the web app leaves out (commentary table + cover).
@@ -241,9 +247,29 @@ def build_env(env_id, folder: Path, position, turn, obj: Path = None):
     return out
 
 
+def convert_normal(src: Path, dst: Path, color: Path):
+    """The game's normal map (x, y in red, green; DirectX's y down) as an
+    OpenGL one with z made up; its alpha (dark seams) darkens the color."""
+    import numpy as np
+    from PIL import Image
+
+    img = Image.open(src).convert("RGBA")
+    if img.width > TEXTURE_SIZE or img.height > TEXTURE_SIZE:
+        img.thumbnail((TEXTURE_SIZE, TEXTURE_SIZE), Image.LANCZOS)
+    a = np.asarray(img).astype(float) / 255
+    x, y = a[..., 0] * 2 - 1, -(a[..., 1] * 2 - 1)
+    z = np.sqrt(np.clip(1 - x * x - y * y, 0, 1))
+    n = np.stack([x, y, z], -1) * 0.5 + 0.5
+    Image.fromarray((n * 255).round().astype(np.uint8)).save(dst, "WEBP", quality=90, method=6)
+    c = Image.open(color).convert("RGB").resize(img.size, Image.LANCZOS)
+    shade = 0.45 + 0.55 * a[..., 3:4]
+    Image.fromarray((np.asarray(c) * shade).round().astype(np.uint8)).save(color, "WEBP", quality=85, method=6)
+
+
 def texture_prop(key, folder: Path, srcs):
     """Textures one prop from the game's model. Returns ({bin name: (corner
-    uvs, group per triangle)}, [texture file name or None per group])."""
+    uvs, group per triangle)}, [texture file name or None per group], extra
+    catalog fields ("normal", "opacity"))."""
     import numpy as np
     from game_models import prop_model
 
@@ -258,7 +284,7 @@ def texture_prop(key, folder: Path, srcs):
         )
     per_bin, groups = prop_model(objs, folder, key in UVS_FROM_GAME)
     if not any(groups):
-        return {}, []
+        return {}, [], {}
     names = []
     for i, src in enumerate(groups):
         if src is None:
@@ -267,8 +293,19 @@ def texture_prop(key, folder: Path, srcs):
         name = f"{key.lower()}.webp" if i == 0 else f"{key.lower()}_{i}.webp"
         convert_texture(src, TEXTURES_OUT / name)
         names.append(name)
-    print(f"  {folder.name:34s} -> {', '.join(n or '(plain)' for n in names)}")
-    return per_bin, names
+    extra = {}
+    if key in NORMAL_MAPS and groups[0]:
+        nrm = groups[0].with_name(groups[0].stem.replace("_color", "_nrm") + groups[0].suffix)
+        if nrm.exists():
+            extra["normal"] = f"{key.lower()}_nrm.webp"
+            convert_normal(nrm, TEXTURES_OUT / extra["normal"], TEXTURES_OUT / names[0])
+    if key in SEE_THROUGH and groups[0]:
+        from PIL import Image, ImageStat
+
+        extra["opacity"] = round(ImageStat.Stat(Image.open(groups[0]).convert("RGBA").getchannel("A")).mean[0] / 255, 2)
+    print(f"  {folder.name:34s} -> {', '.join(n or '(plain)' for n in [*names, extra.get('normal')] if n)}"
+          + (f" (opacity {extra['opacity']})" if "opacity" in extra else ""))
+    return per_bin, names, extra
 
 
 def parse_icon_maps():
@@ -355,8 +392,9 @@ def main():
         entry["states"] = states
         folder = game_folder(args.game_props, p.get("prop_id")) if args.game_props else None
         if folder and p["key"] not in NO_TEXTURE:
-            per_bin, names = texture_prop(p["key"], folder, {b: needed[b] for b in states.values()})
+            per_bin, names, extra = texture_prop(p["key"], folder, {b: needed[b] for b in states.values()})
             textured.update(per_bin)
+            entry.update(extra)
             if len(names) == 1:
                 entry["texture"] = names[0]
             elif names:
@@ -366,6 +404,9 @@ def main():
                 if k in old[p["key"]]:
                     entry[k] = old[p["key"]][k]
                     kept.update(states.values())
+            for k in ("normal", "opacity"):
+                if k in old[p["key"]]:
+                    entry[k] = old[p["key"]][k]
         icon_png = icon_map.get(p["key"]) or p.get("icon")
         entry["icon"] = convert_icon(icon_png) if icon_png else None
         if p["key"] in alt_map:

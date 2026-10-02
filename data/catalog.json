@@ -74,6 +74,7 @@
    "states": {
     "Default": "upper_stair.bin"
    },
+   "normal": "steel_nrm.webp",
    "texture": "steel.webp",
    "icon": "steelstepsupper.webp"
   },
@@ -126,6 +127,7 @@
    "states": {
     "Default": "glass.bin"
    },
+   "opacity": 0.28,
    "texture": "glass.webp",
    "icon": "glass.webp"
   },

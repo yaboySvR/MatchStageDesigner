@@ -37,6 +37,8 @@ function register(p, custom = null) {
     // the game's color texture(s) (viewport.js); "textures" goes with the
     // mesh's groups, null for a part left plain
     textures: custom ? null : p.textures || (p.texture ? [p.texture] : null),
+    normal: custom ? null : p.normal || null,   // its bump map (steel steps)
+    opacity: custom ? 1 : p.opacity ?? 1,       // see-through (glass)
     unlistedDefault: !!p.unlisted,
     custom,
   };
