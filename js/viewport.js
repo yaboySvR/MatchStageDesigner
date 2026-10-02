@@ -340,12 +340,13 @@ export function syncProps() {
     } else if (!mesh) {
       mesh = new THREE.Mesh(geom, MAT.prop);
       mesh.userData.id = p.id;
-      mesh.userData.key = p.key;
       propMeshes.set(p.id, mesh);
       scene.add(mesh);
     } else if (mesh.geometry !== geom) {
       mesh.geometry = geom;
     }
+    // ids are reused (switching matches), so the prop under an id can change
+    mesh.userData.key = p.key;
     place(mesh, p);
     mesh.material = materialFor(p.id);
   }
