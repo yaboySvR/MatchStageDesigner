@@ -119,10 +119,6 @@ async function renderStatus() {
     if (GF.supported()) line += ' · <button type="button" class="text-btn" data-act="connect">Connect PropsSet folder…</button>';
     else if (!window.isSecureContext) line += ' · <span class="muted" title="Browsers only let https:// pages use a folder on your computer">Connecting a PropsSet folder needs the site’s https:// address</span>';
   }
-  const kept = S.match ? S.jsfb?.keep?.length || 0 : 0;
-  if (kept) {
-    line += `<br><span class="muted">Also has ${kept} prop${kept === 1 ? '' : 's'} the site doesn’t show, kept as ${kept === 1 ? 'it is' : 'they are'}.</span>`;
-  }
   $('match-status').innerHTML = line;
 }
 
