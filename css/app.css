@@ -85,6 +85,7 @@ button { cursor: pointer; }
 .match-status .text-btn { font-size: 12px; padding: 1px 4px; }
 
 .seg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; background: var(--bg); padding: 3px; border-radius: 9px; border: 1px solid var(--border); }
+#env-seg { grid-template-columns: repeat(4, 1fr); }
 .seg button {
   border: 0; background: transparent; padding: 7px 0; border-radius: 6px;
   color: var(--muted); font-weight: 600; font-size: 12px;

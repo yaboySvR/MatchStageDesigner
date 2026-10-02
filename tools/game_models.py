@@ -147,8 +147,8 @@ def color_textures(mtls_path, texture_dir):
     """material name -> its color texture (a file in texture_dir) or None."""
     have = {p.stem.lower(): p for p in Path(texture_dir).glob("*.dds")}
     b = open(mtls_path, "rb").read()
-    n = struct.unpack("<I", b[4:8])[0]
     blocks = b.split(b"MTL!")
+    n = len(blocks) - 1  # (the count after "MTLs" can be one short)
     head = [x.decode("latin1") for x in re.findall(rb"[ -~]{2,}", blocks[0])]
     names = head[1:1 + n] if head and head[0] == "MTLs" else head[:n]
     out = {}
@@ -424,3 +424,35 @@ def prop_model(objs, folder, uvs_from_game):
     index = {t: i for i, t in enumerate(groups)}
     out = {name: (uvs, np.array([index[t] for t in texs])) for name, (uvs, texs) in per_face.items()}
     return out, groups
+
+
+# ---------------------------------------------------------------- arena pieces
+
+def env_model(folder, position=(0, 0, 0), turn_y=0):
+    """A whole game model (the ambulance, a cage, ...) where a prop set puts
+    it: position (game x, y, z) and a turn round the game's y, in degrees.
+    The collision boxes (lambert1) and anything left under the floor are
+    dropped. Returns (positions (N,3) OBJ space, uvs (N,2) v up, triangles
+    (M,3), group per triangle, [(material, texture Path or None) per group])."""
+    mcd, mtls = model_files(folder)
+    colors = color_textures(mtls, Path(folder) / "Textures") if mtls else {}
+    a = np.radians(turn_y)
+    c, s = np.cos(a), np.sin(a)
+    turn = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+    pos, uvs, tris, mats = [], [], [], []
+    n = 0
+    for m in read_mcd(mcd):
+        if all(x == "lambert1" for x in m["mat"]) or m["uv"] is None:
+            continue
+        p = (m["pos"] @ turn.T + np.asarray(position, float)) * FLIPS[0]
+        if p[:, 1].max() < -1:
+            continue
+        pos.append(p)
+        uvs.append(m["uv"] * [1, -1] + [0, 1])  # the game's v runs down
+        tris.append(m["tris"] + n)
+        mats += m["mat"]
+        n += len(p)
+    groups = sorted(set(mats), key=lambda x: (colors.get(x) is None, -mats.count(x)))
+    index = {x: i for i, x in enumerate(groups)}
+    return (np.concatenate(pos), np.concatenate(uvs), np.concatenate(tris),
+            np.array([index[x] for x in mats]), [(x, colors.get(x)) for x in groups])

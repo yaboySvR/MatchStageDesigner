@@ -8,7 +8,7 @@ import { S } from './state.js';
 import { getGeometry, geomNow, geomFailed, loadEnvGeometry } from './geometry.js';
 import { profileToMatrix } from './rotation.js';
 import * as G from './gizmo.js';
-import { getProp } from './catalog.js';
+import { catalog, getProp } from './catalog.js';
 
 const DEG = Math.PI / 180;
 
@@ -105,6 +105,33 @@ const ENV_STYLE = {
   wg:        { color: 0x9aa1ad, metalness: 0.4 },
   amb:       { color: 0xe4e4e8 },
 };
+// The arena piece each arena shows besides the ring (the steel cage, the
+// ambulance, ... stand where their match puts them).
+const ENV_PIECE = { EC: 'ec', HIAC: 'hiac', WG: 'wg', AMB: 'amb', CAGE: 'cage', DUMPSTER: 'dumpster', CASKET: 'casket' };
+// these have a ring of their own
+const OWN_RING = new Set(['EC', 'HIAC', 'WG']);
+
+// Arena pieces made from the game's models (catalog "env_textures"): one
+// material per group of the mesh. "cut" textures have see-through parts,
+// "fence" ones are mostly see-through (the cage's chain-link: blended, so it
+// stays a haze from afar), "glass" is see-through as a whole; null stays plain.
+function envMaterial(id, style) {
+  const plain = () => new THREE.MeshStandardMaterial({ roughness: 0.85, ...matOpts, ...style });
+  const list = catalog.envTextures[id];
+  if (!list) return plain();
+  return list.map((t) => {
+    if (!t) return plain();
+    const tex = textureOf(t.file);
+    const m = new THREE.MeshStandardMaterial({ roughness: 0.8, ...matOpts, map: tex.map });
+    if (t.alpha === 'cut') m.alphaTest = 0.5;
+    if (t.alpha === 'fence') Object.assign(m, { transparent: true, depthWrite: false });
+    if (t.alpha === 'glass') Object.assign(m, { transparent: true, opacity: 0.35, depthWrite: false });
+    m.userData.see = t.alpha === 'glass' || t.alpha === 'fence';
+    m.userData.opacity = m.opacity;
+    if (!tex.ready) tex.waiting.push(requestRender);
+    return m;
+  });
+}
 
 export const requestRender = () => { needsRender = true; };
 
@@ -200,9 +227,7 @@ const boxOf = (b) => ({ minX: b.min.x, maxX: b.max.x, minY: b.min.y, maxY: b.max
 export function ensureEnv(id) {
   if (envLoading[id]) return envLoading[id];
   envLoading[id] = loadEnvGeometry(id).then((geom) => {
-    const style = ENV_STYLE[id] || { color: 0x777777 };
-    const mat = new THREE.MeshStandardMaterial({ roughness: 0.85, ...matOpts, ...style });
-    const mesh = new THREE.Mesh(geom, mat);
+    const mesh = new THREE.Mesh(geom, envMaterial(id, ENV_STYLE[id] || { color: 0x777777 }));
     mesh.name = id;
     envMeshes[id] = mesh;
     envBoxes[id] = boxOf(geom.boundingBox);
@@ -218,10 +243,7 @@ export function ensureEnv(id) {
 
 export function envModelsFor(env) {
   const need = ['floor', 'barricade', 'ringmat'];
-  if (env === 'EC') need.push('ec');
-  if (env === 'HIAC') need.push('hiac');
-  if (env === 'WG') need.push('wg');
-  if (env === 'AMB') need.push('amb');
+  if (ENV_PIECE[env]) need.push(ENV_PIECE[env]);
   if (S.stage) need.push('ramp', 'stage');
   return need;
 }
@@ -233,22 +255,21 @@ export function applyEnvState() {
   const vis = {
     floor: true,
     barricade: true,
-    ringmat: S.env === 'NORMAL' || S.env === 'AMB',
-    ec: S.env === 'EC',
-    hiac: S.env === 'HIAC',
-    wg: S.env === 'WG',
-    amb: S.env === 'AMB',
+    ringmat: !OWN_RING.has(S.env),
     ramp: S.stage,
     stage: S.stage,
   };
+  if (ENV_PIECE[S.env]) vis[ENV_PIECE[S.env]] = true;
   for (const [id, mesh] of Object.entries(envMeshes)) {
     mesh.visible = !!vis[id];
-    const m = mesh.material;
     const xray = S.xray && id !== 'floor';
-    m.transparent = xray;
-    m.opacity = xray ? 0.22 : 1;
-    m.depthWrite = !xray;
-    m.needsUpdate = true;
+    for (const m of [mesh.material].flat()) {
+      const see = m.userData.see; // glass
+      m.transparent = xray || see;
+      m.opacity = xray ? 0.22 : see ? m.userData.opacity : 1;
+      m.depthWrite = !xray && !see;
+      m.needsUpdate = true;
+    }
   }
   requestRender();
 }
@@ -613,9 +634,9 @@ const SHOWCASE_TOP = 650; // cm, about a cage's height
 export function frameScene() {
   const box = new THREE.Box3();
   for (const m of propMeshes.values()) box.expandByObject(m);
-  // the arena models that show (the ring, a cage, the ambulance), up to cage
+  // the arena models that show (the ring, a cage, the ambulance...), up to cage
   // height: the chamber's hanging cables reach 18 m
-  for (const id of ['ringmat', 'ec', 'hiac', 'wg', 'amb']) {
+  for (const id of ['ringmat', ...Object.values(ENV_PIECE)]) {
     const m = envMeshes[id];
     if (!m?.visible) continue;
     const a = new THREE.Box3().setFromObject(m);

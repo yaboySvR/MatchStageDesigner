@@ -12,6 +12,8 @@ Reads  props/Prop_Models/*.obj, props/Prop_Models/props.json, icons/*.png,
 Writes web/assets/models/<name>.bin       compact indexed meshes (lowercase names)
        web/assets/icons/<name>.webp        256px icons
        web/assets/textures/<key>[_n].webp  the props' color textures
+       web/assets/models/env_<id>.bin and textures/env_<id>[_n].webp: the
+       arena pieces made from game models (GAME_ENV)
        web/data/catalog.json               props + state ids + icon map for the web app
 
 Mesh .bin layout (little-endian):
@@ -56,6 +58,18 @@ ENV_MODELS = {
     "hiac": "HIAC.obj",
     "wg": "Wargames_cage.obj",
     "amb": "ambulance.obj",
+}
+
+# Arena pieces made from the game's own model (with its textures), where the
+# match's vanilla prop set puts them: web id -> (game prop id, game position
+# x, y, z, turn round the game's y in degrees). The steel cage isn't in its
+# prop set (the game brings it), so it stands at the centre. Needs
+# --game-props; "amb" falls back to its OBJ until then.
+GAME_ENV = {
+    "amb": (6454, (77.4000015258789, 0, 1180), 180),
+    "cage": (2064, (0, 0, 0), 0),
+    "dumpster": (9300, (0, 0, 364.01239013671875), 0),
+    "casket": (9299, (0, 0, 364.01239013671875), 0),
 }
 
 ICON_SIZE = 256
@@ -132,19 +146,24 @@ def convert_obj(src: Path, dst: Path, textured=None):
         positions = out_pos
     else:
         indices = [i for tri in tris for i, _ in tri]
+    return write_bin(dst, positions, indices, out_uv if textured is not None else None, groups)
 
+
+def write_bin(dst: Path, positions, indices, uvs=None, groups=()):
+    """positions [(x, y, z)], indices, uvs [(u, v)] or None, index count per
+    texture group (more than one: PPG3)."""
     vcount = len(positions)
     flat = [x for p in positions for x in p]
     ibytes = 2 if vcount < 65536 else 4
     dst.parent.mkdir(parents=True, exist_ok=True)
     with open(dst, "wb") as out:
-        out.write(b"PPG1" if textured is None else b"PPG3" if len(groups) > 1 else b"PPG2")
+        out.write(b"PPG1" if uvs is None else b"PPG3" if len(groups) > 1 else b"PPG2")
         out.write(struct.pack("<III", vcount, len(indices), ibytes))
         if len(groups) > 1:
             out.write(struct.pack(f"<I{len(groups)}I", len(groups), *groups))
         out.write(struct.pack(f"<{len(flat)}f", *flat))
-        if textured is not None:
-            out.write(struct.pack(f"<{len(out_uv) * 2}f", *(x for uv in out_uv for x in uv)))
+        if uvs is not None:
+            out.write(struct.pack(f"<{len(uvs) * 2}f", *(x for uv in uvs for x in uv)))
         out.write(struct.pack(f"<{len(indices)}{'H' if ibytes == 2 else 'I'}", *indices))
     return vcount, len(indices) // 3
 
@@ -161,14 +180,47 @@ def game_folder(game_props: Path, prop_id):
     return folders[0] if folders else None
 
 
-def convert_texture(src: Path, dst: Path):
-    from PIL import Image
+def convert_texture(src: Path, dst: Path, cutout=False):
+    """cutout: keep the alpha when it has see-through parts. Returns None, or
+    "cut" when it did, "fence" when it's mostly see-through (chain-link)."""
+    from PIL import Image, ImageStat
 
-    img = Image.open(src).convert("RGB")
+    img = Image.open(src).convert("RGBA")
+    alpha = img.getchannel("A")
+    cutout = cutout and alpha.getextrema()[0] == 0 and ("fence" if ImageStat.Stat(alpha).mean[0] < 128 else "cut")
+    img = img if cutout else img.convert("RGB")
     if img.width > TEXTURE_SIZE or img.height > TEXTURE_SIZE:
         img.thumbnail((TEXTURE_SIZE, TEXTURE_SIZE), Image.LANCZOS)
     dst.parent.mkdir(parents=True, exist_ok=True)
     img.save(dst, "WEBP", quality=85, method=6)
+    return cutout or None
+
+
+def build_env(env_id, folder: Path, position, turn):
+    """An arena piece from the game's model: writes env_<id>.bin and its
+    textures; returns its catalog "env_textures" list, one per group:
+    {"file", "alpha": "cut" (see-through parts) | "fence" (mostly
+    see-through) | "glass" | None} or None
+    (left plain)."""
+    import numpy as np
+    from game_models import env_model
+
+    pos, uv, tris, group, mats = env_model(folder, position, turn)
+    order = np.argsort(group, kind="stable")
+    counts = [int((group == i).sum()) * 3 for i in range(len(mats))]
+    v, t = write_bin(MODELS_OUT / f"env_{env_id}.bin", pos.tolist(), tris[order].ravel().tolist(), uv.tolist(), counts)
+    files, out = {}, []
+    for name, src in mats:
+        if src is None:
+            out.append(None)
+            continue
+        if src not in files:
+            file = f"env_{env_id}.webp" if not files else f"env_{env_id}_{len(files)}.webp"
+            files[src] = (file, convert_texture(src, TEXTURES_OUT / file, cutout=True))
+        file, cut = files[src]
+        out.append({"file": file, "alpha": "glass" if "glass" in name.lower() else cut})
+    print(f"  {folder.name:34s} -> env_{env_id}.bin {v:7d} verts {t:7d} tris, {len(files)} textures")
+    return out
 
 
 def texture_prop(key, folder: Path, srcs):
@@ -238,7 +290,8 @@ def main():
     props_json = json.loads((MODELS_SRC / "props.json").read_text(encoding="utf-8"))
     icon_map, alt_map = parse_icon_maps()
     old_catalog = DATA_OUT / "catalog.json"
-    old = {p["key"]: p for p in json.loads(old_catalog.read_text(encoding="utf-8"))["props"]} if old_catalog.exists() else {}
+    old_data = json.loads(old_catalog.read_text(encoding="utf-8")) if old_catalog.exists() else {}
+    old = {p["key"]: p for p in old_data.get("props", [])}
 
     # Collect every OBJ the web app needs
     needed = {}  # out bin name -> src path
@@ -250,6 +303,16 @@ def main():
             print(f"  ! missing env model {fn}")
             continue
         needed[f"env_{env_id}.bin"] = src
+    env_textures = {}
+    for env_id, (prop_id, position, turn) in GAME_ENV.items():
+        folder = game_folder(args.game_props, prop_id) if args.game_props else None
+        if folder:
+            env_textures[env_id] = build_env(env_id, folder, position, turn)
+        elif env_id in old_data.get("env_textures", {}) and (MODELS_OUT / f"env_{env_id}.bin").exists():
+            env_textures[env_id] = old_data["env_textures"][env_id]
+        else:
+            continue
+        needed.pop(f"env_{env_id}.bin", None)
 
     props_out = []
     for p in props_json.get("props", []):
@@ -302,7 +365,8 @@ def main():
     catalog = {
         "state_definitions": props_json.get("state_definitions", {}),
         "props": props_out,
-        "env_models": {k: f"env_{k}.bin" for k in ENV_MODELS},
+        "env_models": {k: f"env_{k}.bin" for k in [*ENV_MODELS, *(k for k in env_textures if k not in ENV_MODELS)]},
+        "env_textures": env_textures,
     }
     DATA_OUT.mkdir(parents=True, exist_ok=True)
     (DATA_OUT / "catalog.json").write_text(json.dumps(catalog, indent=1), encoding="utf-8")

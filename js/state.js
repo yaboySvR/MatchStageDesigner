@@ -9,6 +9,9 @@ export const ENVIRONMENTS = [
   { key: 'HIAC', label: 'HIAC', name: 'Hell in a Cell' },
   { key: 'WG', label: 'WG', name: 'WarGames' },
   { key: 'AMB', label: 'Amb.', name: 'Ambulance' },
+  { key: 'CAGE', label: 'Cage', name: 'Steel Cage' },
+  { key: 'DUMPSTER', label: 'Dump.', name: 'Dumpster' },
+  { key: 'CASKET', label: 'Casket', name: 'Casket' },
 ];
 
 export const S = {

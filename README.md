@@ -53,9 +53,10 @@ python web/tools/build_assets.py
 
 The props use the game's own color textures (`assets/textures/`). Which
 texture goes where comes from the game's own models (`tools/game_models.py`);
-the ladder's and the glass's texture coordinates are read from them too. To
-remake them, point the script at the game's extracted Props folder (needs
-numpy and Pillow):
+the ladder's and the glass's texture coordinates are read from them too. The
+ambulance, steel cage, dumpster and casket that stand in their matches are
+the game's own models, with their textures. To remake them, point the script
+at the game's extracted Props folder (needs numpy and Pillow):
 
 ```
 python web/tools/build_assets.py --game-props <extracted Props folder>

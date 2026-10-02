@@ -4,6 +4,7 @@
 export const catalog = {
   stateDefs: {},          // state name -> state id
   envModels: {},          // env id -> bin file
+  envTextures: {},        // env id -> textures per mesh group (viewport.js)
   props: new Map(),       // key -> entry
   order: [],
 };
@@ -49,6 +50,7 @@ export async function loadCatalog() {
   const data = await res.json();
   catalog.stateDefs = data.state_definitions || {};
   catalog.envModels = data.env_models || {};
+  catalog.envTextures = data.env_textures || {};
   for (const p of data.props) register(p);
   unlistedOverrides = readLocal(UNLISTED_KEY, {});
   try {

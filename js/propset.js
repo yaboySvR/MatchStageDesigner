@@ -56,6 +56,9 @@ export function matchOf(name) {
 // The arena that goes with a match type's file.
 export function envForFile(name) {
   if (/ambulance/i.test(name)) return 'AMB';
+  if (/steelcage/i.test(name)) return 'CAGE';
+  if (/dumpster/i.test(name)) return 'DUMPSTER';
+  if (/casket/i.test(name)) return 'CASKET';
   if (/eliminationchamber/i.test(name)) return 'EC';
   if (/hiac|hellinacell/i.test(name)) return 'HIAC';
   if (/wargames/i.test(name)) return 'WG';

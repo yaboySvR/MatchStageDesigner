@@ -657,6 +657,76 @@
   "ec": "env_ec.bin",
   "hiac": "env_hiac.bin",
   "wg": "env_wg.bin",
-  "amb": "env_amb.bin"
+  "amb": "env_amb.bin",
+  "cage": "env_cage.bin",
+  "dumpster": "env_dumpster.bin",
+  "casket": "env_casket.bin"
+ },
+ "env_textures": {
+  "amb": [
+   {
+    "file": "env_amb.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_amb_1.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_amb_2.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_amb_3.webp",
+    "alpha": "cut"
+   },
+   {
+    "file": "env_amb_4.webp",
+    "alpha": "glass"
+   },
+   {
+    "file": "env_amb_3.webp",
+    "alpha": "cut"
+   },
+   null
+  ],
+  "cage": [
+   {
+    "file": "env_cage.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_cage_1.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_cage_2.webp",
+    "alpha": "fence"
+   },
+   {
+    "file": "env_cage_3.webp",
+    "alpha": "cut"
+   }
+  ],
+  "dumpster": [
+   {
+    "file": "env_dumpster.webp",
+    "alpha": null
+   },
+   {
+    "file": "env_dumpster_1.webp",
+    "alpha": null
+   }
+  ],
+  "casket": [
+   {
+    "file": "env_casket.webp",
+    "alpha": "cut"
+   },
+   {
+    "file": "env_casket_1.webp",
+    "alpha": "cut"
+   }
+  ]
  }
 }

@@ -162,9 +162,12 @@ export function snapZ(x, y, exclude = null) {
       // Inside the cell is the floor; the roof is only for clicks on it (cellRoof).
       return ringTop('ringmat', x, y) ?? fallback();
     case 'AMB':
-      return ringTop('ringmat', x, y)
-        ?? (inXY(envBoxes.amb, x, y) ? envBoxes.amb.maxZ : null)   // ambulance roof
-        ?? fallback();
+    case 'DUMPSTER':
+    case 'CASKET': {
+      // on the ambulance roof, the dumpster's or the casket's lid
+      const b = envBoxes[S.env.toLowerCase()];
+      return (inXY(b, x, y) ? b.maxZ : null) ?? ringTop('ringmat', x, y) ?? fallback();
+    }
     default:
       return ringTop('ringmat', x, y) ?? fallback();
   }
