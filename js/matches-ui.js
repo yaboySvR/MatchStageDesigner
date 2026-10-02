@@ -13,7 +13,7 @@ import * as M from './matches.js';
 import * as GF from './gamefolder.js';
 import { envForFile } from './propset.js';
 import { toast } from './toast.js';
-import { leaveProfile } from './profiles-ui.js';
+import { leaveProfile, syncArenaButtons } from './profiles-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -90,8 +90,7 @@ function applyMatch({ file, bytes, env } = {}) {
 
 function sync() {
   $('match-select').value = S.match || '';
-  // a match comes with its own arena: the arena buttons are for free design
-  $('env-seg').hidden = !!S.match;
+  syncArenaButtons();
   for (const id of ['match-select', 'match-prev', 'match-next']) $(id).disabled = busy;
 }
 

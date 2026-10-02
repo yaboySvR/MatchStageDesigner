@@ -53,6 +53,13 @@ function showTab(t) {
   $('matches-view').hidden = profiles;
   $('profiles-view').hidden = !profiles;
   try { localStorage.setItem('ppg.layoutTab', t); } catch { /* storage unavailable */ }
+  syncArenaButtons();
+}
+
+// A match comes with its own arena: the arena buttons hide while one is open
+// on the Matches tab.
+export function syncArenaButtons() {
+  $('env-seg').hidden = !!S.match && !$('matches-view').hidden;
 }
 
 async function refresh() {
