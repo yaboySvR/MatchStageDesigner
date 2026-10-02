@@ -358,6 +358,13 @@ export function syncProps() {
     if (!geom) {
       waitForGeometry(p.key, p.state);
       if (!mesh) continue;
+      // ids are reused (switching matches, profiles): a mesh still showing
+      // another prop goes until this one's model is here
+      if (mesh.userData.key !== p.key) {
+        scene.remove(mesh);
+        propMeshes.delete(p.id);
+        continue;
+      }
     } else if (!mesh) {
       mesh = new THREE.Mesh(geom, MAT.prop);
       mesh.userData.id = p.id;
@@ -366,7 +373,6 @@ export function syncProps() {
     } else if (mesh.geometry !== geom) {
       mesh.geometry = geom;
     }
-    // ids are reused (switching matches), so the prop under an id can change
     mesh.userData.key = p.key;
     place(mesh, p);
     mesh.material = materialFor(p.id);
@@ -378,6 +384,27 @@ export function syncProps() {
     }
   }
   requestRender();
+}
+
+// After the site has opened: every prop's models and textures, a few at a
+// time, so switching matches and profiles finds them ready.
+export async function preloadProps() {
+  const jobs = [];
+  for (const pd of catalog.props.values()) {
+    if (pd.custom) continue;
+    jobs.push(() => new Promise((resolve) => {
+      const skin = skinOf(pd.key);
+      const maps = (pd.textures || []).filter(Boolean).map(textureOf).filter((t) => !t.ready);
+      let left = maps.length + 1;
+      const done = () => { if (--left <= 0) resolve(); };
+      setTimeout(resolve, 20000); // a texture that never comes doesn't hold up the rest
+      for (const t of maps) t.waiting.push(done);
+      Promise.allSettled(pd.stateOrder.map((s) => getGeometry(pd.key, s))).then(done);
+      return skin;
+    }));
+  }
+  const worker = async () => { while (jobs.length) await jobs.shift()(); };
+  await Promise.all([worker(), worker(), worker()]);
 }
 
 export function setHover(id) {

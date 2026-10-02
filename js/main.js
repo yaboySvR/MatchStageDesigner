@@ -30,6 +30,7 @@ async function boot() {
     V.syncProps();
     $('loading').classList.add('done');
     preloadPhysics();
+    V.preloadProps();
     if (restored && S.props.length) {
       toast(`Restored ${S.props.length} props from your last session`);
     }
