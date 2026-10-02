@@ -44,6 +44,9 @@ export function initMatchesUI(h, { mode = 'game' } = {}) {
   on('match-edited', renderOptions);
   on('profile', renderStatus);
   sync();
+  // a match open from last time comes back in its own arena (one saved
+  // before that match had its arena would still be on the ring)
+  if (S.match && M.MATCHES.some((m) => m.file === S.match)) hooks.setEnv(envForFile(S.match));
   M.initMatches()
     .catch((e) => toast(browser ? 'Couldn’t load the open match; try reloading the page' : `Matches: ${e.message}`, { error: true }))
     .finally(() => { renderStatus(); renderOptions(); });
