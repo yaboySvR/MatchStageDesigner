@@ -14,7 +14,7 @@
 //   go back in their original place in the list.
 // New props are written the way the intermediary program writes them.
 
-import { getProp, stateId } from './catalog.js';
+import { getProp, stateId, propIdOf } from './catalog.js';
 import { catalogMatcher } from './profile.js';
 import { pyFixed3 } from './rotation.js';
 import { decode, encode } from './jsfb.js';
@@ -101,7 +101,7 @@ export function readPropSet(bytes) {
     }
     const P = p.position || {}, R = p.rotation || {};
     items.push({
-      key: hit[0], state: hit[1],
+      key: hit[0], state: hit[1], color: hit[2],
       x: P.x || 0, y: P.z || 0, z: -(P.y || 0) || 0,
       rx: R.x || 0, ry: R.z || 0, rz: R.y || 0,
       jsfb: { i, src: freeze(p) },
@@ -173,8 +173,9 @@ export function writePropSet({ props, unknownLines = [], file = null }) {
     const pd = getProp(p.key);
     const sid = stateId(p.state);
     if (!pd || sid === undefined) continue;
-    if (p.jsfb) placed.push([p.jsfb.i, edited(p, pd.prop_id, sid)]);
-    else added.push(fresh(p, pd.prop_id, sid));
+    const pid = propIdOf(p.key, p.color);
+    if (p.jsfb) placed.push([p.jsfb.i, edited(p, pid, sid)]);
+    else added.push(fresh(p, pid, sid));
   }
   for (const k of file?.keep || []) placed.push([k.i, thaw(k.prop)]);
   placed.sort((a, b) => a[0] - b[0]);

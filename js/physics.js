@@ -319,7 +319,7 @@ export function drop(items, { spin = false } = {}) {
   for (const it of items) {
     const geom = geomNow(it.key, it.state);
     if (!geom) continue;
-    const p = store.addProp({ key: it.key, state: it.state, x: it.x, y: it.y, z: it.z, rx: it.rx, ry: it.ry, rz: it.rz });
+    const p = store.addProp({ key: it.key, state: it.state, color: it.color, x: it.x, y: it.y, z: it.z, rx: it.rx, ry: it.ry, rz: it.rz });
     addBody(p, geom, spin);
     added.push(p);
   }

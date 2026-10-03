@@ -4,7 +4,7 @@
 // applies, so every geometry here is in Blender space (Z up).
 
 import * as THREE from 'three';
-import { catalog, getProp } from './catalog.js';
+import { catalog, getProp, modelOf } from './catalog.js';
 
 const cache = new Map(); // id -> { promise, geom, failed }
 
@@ -91,12 +91,16 @@ function load(id, url) {
   return entry.promise;
 }
 
-const propId = (key, state) => `${key}\u0000${state}`;
+// a color with a model of its own (the mocap chair) has its own entry
+const propId = (key, state, color) => {
+  const own = color && modelOf(key, state, color) !== getProp(key)?.states[state];
+  return `${key}\u0000${state}${own ? `\u0000${color}` : ''}`;
+};
 
-export function getGeometry(key, state) {
+export function getGeometry(key, state, color) {
   const pd = getProp(key);
   if (!pd || !(state in pd.states)) return Promise.reject(new Error(`Unknown prop ${key}/${state}`));
-  const id = propId(key, state);
+  const id = propId(key, state, color);
   if (pd.custom) {
     let entry = cache.get(id);
     if (!entry) {
@@ -106,15 +110,15 @@ export function getGeometry(key, state) {
     }
     return entry.promise;
   }
-  return load(id, `assets/models/${pd.states[state]}`);
+  return load(id, `assets/models/${modelOf(key, state, color)}`);
 }
 
-export function geomNow(key, state) {
-  return cache.get(propId(key, state))?.geom || null;
+export function geomNow(key, state, color) {
+  return cache.get(propId(key, state, color))?.geom || null;
 }
 
-export function geomFailed(key, state) {
-  return !!cache.get(propId(key, state))?.failed;
+export function geomFailed(key, state, color) {
+  return !!cache.get(propId(key, state, color))?.failed;
 }
 
 export function loadEnvGeometry(envId) {

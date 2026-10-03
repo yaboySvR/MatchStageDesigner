@@ -19,7 +19,7 @@ import * as W from './walk.js';
 import { isWalkStart, walkKeyLabels } from './settings.js';
 import { snapZ, cellRoof } from './snapping.js';
 import { getGeometry, geomNow, spanAlong, heightOf, footprintOf } from './geometry.js';
-import { getProp } from './catalog.js';
+import { getProp, colorId, colorOf } from './catalog.js';
 import { placeSet } from './sets.js';
 import { yawToRz, rotZ, quatToMatrix, axisAngleMatrix, rotateProfile, apply, mirrorX, mirrorY } from './rotation.js';
 import * as G from './gizmo.js';
@@ -70,7 +70,9 @@ export function setGizmoSpace(space) {
   emit('gizmo');
 }
 
-export function enterAdd(key, state) {
+// color: the prop's color (unset: the base one); the same prop keeps the
+// color it had
+export function enterAdd(key, state, color = key === S.addKey ? S.addColor : undefined) {
   if (op) finishOp(false);
   const pd = getProp(key);
   if (!pd) return;
@@ -78,11 +80,12 @@ export function enterAdd(key, state) {
   S.addSet = null;
   S.addKey = key;
   S.addState = state && state in pd.states ? state : pd.defaultState;
+  S.addColor = colorId(key, color);
   add.first = null;
   add.extra = 0;
   setHover(null);
   setMode('add');
-  getGeometry(key, S.addState).then(
+  getGeometry(key, S.addState, S.addColor).then(
     () => { if (S.mode === 'add') refreshAdd(); },
     (e) => toast(`Could not load model: ${e.message}`, { error: true }),
   );
@@ -94,6 +97,7 @@ export function exitAdd() {
   add.placements = [];
   S.addKey = null;
   S.addState = null;
+  S.addColor = undefined;
   S.addSet = null;
   V.setGhosts([]);
   V.setDropGuides([]);
@@ -111,7 +115,7 @@ export function enterSetPlacement(set) {
   setHover(null);
   setMode('add');
   const refresh = () => { if (S.mode === 'add' && S.addSet === set) refreshAdd(); };
-  for (const it of set.items) getGeometry(it.key, it.state).then(refresh, () => {});
+  for (const it of set.items) getGeometry(it.key, it.state, it.color).then(refresh, () => {});
   refreshAdd();
 }
 
@@ -220,7 +224,7 @@ function computePlacements() {
 function placementItems() {
   if (S.addSet) return add.placements;
   const rz = yawToRz(placeYawNow());
-  return add.placements.map((p) => ({ key: S.addKey, state: S.addState, ...p, rx: 0, ry: 0, rz }));
+  return add.placements.map((p) => ({ key: S.addKey, state: S.addState, color: S.addColor, ...p, rx: 0, ry: 0, rz }));
 }
 
 // With physics on (and while walking, at the crosshair), the ghosts hang
@@ -230,7 +234,7 @@ function refreshAdd() {
   add.placements = computePlacements();
   let items = placementItems();
   if (dropping()) items = P.planDrop(items, S.dropHeight);
-  V.setGhosts(items.map((p) => ({ geom: geomNow(p.key, p.state), ...p })).filter((g) => g.geom));
+  V.setGhosts(items.map((p) => ({ geom: geomNow(p.key, p.state, p.color) || geomNow(p.key, p.state), ...p })).filter((g) => g.geom));
   V.setDropGuides(dropping() ? items : []);
   updateHud();
 }
@@ -720,7 +724,7 @@ export function mirrorSelected(which) {
     const x = acrossX ? -p.x : p.x, y = acrossX ? p.y : -p.y;
     const [rx, ry, rz] = (acrossX ? mirrorX : mirrorY)(p.rx, p.ry, p.rz);
     const z = S.autoSnap ? carriedZ(p.z, snapZ(p.x, p.y, exclude), snapZ(x, y, exclude)) : p.z;
-    return store.addProp({ key: p.key, state: p.state, x, y, z, rx, ry, rz });
+    return store.addProp({ key: p.key, state: p.state, color: p.color, x, y, z, rx, ry, rz });
   });
   S.selected = new Set(copies.map((c) => c.id));
   store.changed();
@@ -901,6 +905,7 @@ function updateHud() {
     const pd = getProp(S.addKey);
     let name = `<b>${esc(pd.name.toUpperCase())}</b>`;
     if (S.addState !== 'Default' && pd.stateOrder.length > 1) name += ` (${esc(S.addState)})`;
+    if (S.addColor) name += ` · ${esc(colorOf(S.addKey, S.addColor).name)}`;
     const count = add.first ? ` × ${add.placements.length}` : '';
     const drag = S.stacking ? 'drag ↑ to stack' : `drag for a line (${kbd('Shift')} 45°)`;
     const spacing = add.first ? ` · wheel: spacing${add.extra > 0 ? ` +${add.extra.toFixed(0)}` : ''}` : '';

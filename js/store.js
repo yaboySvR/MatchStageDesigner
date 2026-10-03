@@ -2,7 +2,7 @@
 // browser.
 
 import { S, emit } from './state.js';
-import { getProp } from './catalog.js';
+import { getProp, colorId } from './catalog.js';
 import { yawToRz } from './rotation.js';
 
 const SAVE_KEY = 'ppg.scene';
@@ -15,8 +15,10 @@ export const selectedProps = () => S.props.filter((p) => S.selected.has(p.id));
 // Record fields (see state.js): world position x, y, z and the profile's own
 // rotation rx, ry, rz. jsfb: what a prop read from a game file keeps for
 // saving it back (propset.js); copies and new props never carry it.
-export function addProp({ key, state, x, y, z, rx = 0, ry = 0, rz = 0 }, { jsfb = null } = {}) {
+export function addProp({ key, state, color, x, y, z, rx = 0, ry = 0, rz = 0 }, { jsfb = null } = {}) {
   const rec = { id: S.nextId++, key, state, x, y, z, rx, ry, rz };
+  color = colorId(key, color); // another color (catalog.js); unset is the base one
+  if (color) rec.color = color;
   if (jsfb) rec.jsfb = jsfb;
   S.props.push(rec);
   return rec;
@@ -143,6 +145,7 @@ export function loadSaved() {
         id: p.id, key: p.key, state: p.state, x: p.x, y: p.y, z: p.z,
         rx: p.rx || 0, ry: p.ry || 0,
         rz: d.v === 1 ? yawToRz(p.yaw || 0) : p.rz, // v1 stored yaw instead of rz
+        ...(colorId(p.key, p.color) ? { color: p.color } : {}),
         ...(p.jsfb ? { jsfb: p.jsfb } : {}),
       }));
     S.unknownLines = d.unknown || [];

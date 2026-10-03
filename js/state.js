@@ -37,6 +37,7 @@ export const S = {
   mode: 'select',          // select | add | move | rotate
   addKey: null,            // prop being placed, or
   addState: null,
+  addColor: undefined,     // its color (catalog.js colorOf), unset: the base one
   addSet: null,            // prop set being placed (sets.js)
   placeYaw: 0,             // rotation applied to newly placed props / sets
   placeMirror: false,      // set placement mirrored left-right

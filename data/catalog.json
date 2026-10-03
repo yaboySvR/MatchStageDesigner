@@ -20,6 +20,45 @@
     "Default": "ground_chair.bin"
    },
    "texture": "chair.webp",
+   "colors": [
+    {
+     "id": "black",
+     "name": "Black",
+     "swatch": "#161513"
+    },
+    {
+     "id": "grey",
+     "name": "Grey",
+     "prop_id": 152,
+     "swatch": "#444340",
+     "texture": "chair_grey.webp"
+    },
+    {
+     "id": "beige",
+     "name": "Beige",
+     "prop_id": 4324,
+     "swatch": "#978a80",
+     "texture": "chair_beige.webp"
+    },
+    {
+     "id": "blue",
+     "name": "Blue",
+     "prop_id": 4325,
+     "swatch": "#7f849c",
+     "texture": "chair_blue.webp"
+    },
+    {
+     "id": "mocap",
+     "name": "Mocap",
+     "prop_id": 4323,
+     "swatch": "#272727",
+     "texture": "chair_mocap.webp",
+     "states": {
+      "Set Up CHAIR": "chair_mocap.bin",
+      "Default": "ground_chair_mocap.bin"
+     }
+    }
+   ],
    "icon": "chair_folded.webp",
    "alt_icon": {
     "state": "Set Up CHAIR",
@@ -58,6 +97,20 @@
     "Default": "ground_ladder.bin"
    },
    "texture": "ladder.webp",
+   "colors": [
+    {
+     "id": "silver",
+     "name": "Silver",
+     "swatch": "#a3a1a1"
+    },
+    {
+     "id": "orange",
+     "name": "Orange",
+     "prop_id": 9326,
+     "swatch": "#6b291d",
+     "texture": "ladder_orange.webp"
+    }
+   ],
    "icon": "ladder_ground.webp",
    "alt_icon": {
     "state": "Set Up",
@@ -74,8 +127,8 @@
    "states": {
     "Default": "upper_stair.bin"
    },
-   "normal": "steel_nrm.webp",
    "texture": "steel.webp",
+   "normal": "steel_nrm.webp",
    "icon": "steelstepsupper.webp"
   },
   {
@@ -127,8 +180,8 @@
    "states": {
     "Default": "glass.bin"
    },
-   "opacity": 0.28,
    "texture": "glass.webp",
+   "opacity": 0.28,
    "icon": "glass.webp"
   },
   {

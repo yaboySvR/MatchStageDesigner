@@ -457,3 +457,17 @@ def env_model(folder, position=(0, 0, 0), turn_y=0):
     index = {x: i for i, x in enumerate(groups)}
     return (np.concatenate(pos), np.concatenate(uvs), np.concatenate(tris),
             np.array([index[x] for x in mats]), [(x, colors.get(x)) for x in groups])
+
+
+# ---------------------------------------------------------------- color variants
+
+def variant_model(obj_v, base_folder, variant_folder, mesh):
+    """A color variant whose model differs (the mocap chair: the chair plus
+    its markers): the variant's game mesh `mesh`, put where the base prop's
+    same mesh sits on the OBJ (obj_v, its positions). Returns (positions
+    (N,3) OBJ space, uvs (N,2) v up, triangles (M,3))."""
+    base = read_mcd(model_files(base_folder)[0])[mesh]
+    var = read_mcd(model_files(variant_folder)[0])[mesh]
+    flip = FLIPS[0]
+    offset = _center(obj_v) - _center(base["pos"] * flip)
+    return var["pos"] * flip + offset, var["uv"] * [1, -1] + [0, 1], var["tris"]

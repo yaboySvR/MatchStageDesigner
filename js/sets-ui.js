@@ -277,8 +277,8 @@ async function readCode() {
     if (token === reading) $('code-error').textContent = 'None of the props in this set are on this site';
     return;
   }
-  const kinds = new Map(known.map((it) => [`${it.key}/${it.state}`, it]));
-  await Promise.all([...kinds.values()].map((it) => getGeometry(it.key, it.state).catch(() => null)));
+  const kinds = new Map(known.map((it) => [`${it.key}/${it.state}/${it.color || ''}`, it]));
+  await Promise.all([...kinds.values()].map((it) => getGeometry(it.key, it.state, it.color).catch(() => null)));
   if (token !== reading) return;
   set.thumb = V.renderThumbnail(known.map((it) => ({ ...it, x: it.dx, y: it.dy, z: it.dz })));
   const n = set.items.length;

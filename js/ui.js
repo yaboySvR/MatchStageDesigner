@@ -3,7 +3,7 @@
 import { S, ENVIRONMENTS, on } from './state.js';
 import {
   catalog, getProp, listedProps, iconFor, displayName, initials,
-  isListed, setListed, addCustomProp, removeCustomProp,
+  isListed, setListed, addCustomProp, removeCustomProp, colorId, propIdOf,
 } from './catalog.js';
 import * as store from './store.js';
 import * as V from './viewport.js';
@@ -197,6 +197,8 @@ function bindCatalog() {
   $('state-bar').addEventListener('click', (e) => {
     const c = e.target.closest('.state-chip');
     if (c) tools.enterAdd(S.addKey, c.dataset.state);
+    const sw = e.target.closest('.swatch');
+    if (sw) tools.enterAdd(S.addKey, S.addState, sw.dataset.color);
   });
 }
 
@@ -213,10 +215,21 @@ export function renderCatalog() {
     : `<p class="muted" style="grid-column:1/-1">No props match “${esc(q)}”.</p>`;
 
   const pd = active && getProp(active);
-  $('state-bar').innerHTML = pd && pd.stateOrder.length > 1 ? pd.stateOrder.map((st) => `
+  $('state-bar').innerHTML = (pd && pd.stateOrder.length > 1 ? pd.stateOrder.map((st) => `
     <button type="button" class="state-chip" data-state="${esc(st)}" aria-pressed="${st === S.addState}">
       ${iconHtml(iconFor(pd.key, st), pd.name)}${esc(st)}
-    </button>`).join('') : '';
+    </button>`).join('') : '') + (pd ? swatchesHtml(pd, (c) => c === S.addColor) : '');
+}
+
+// The colors a prop comes in (catalog "colors"), as buttons: on(color) says
+// which is picked (color: undefined for the base one).
+function swatchesHtml(pd, on) {
+  if (!pd.colors?.length) return '';
+  return `<div class="swatches" role="radiogroup" aria-label="Color">${pd.colors.map((c, i) => {
+    const color = i ? c.id : undefined;
+    return `<button type="button" class="swatch" role="radio" data-color="${i ? esc(c.id) : ''}" aria-checked="${on(color)}"
+      title="${esc(c.name)} · ID ${c.prop_id ?? pd.prop_id}" aria-label="${esc(c.name)}"><i style="background:${esc(c.swatch)}"></i><span>${esc(c.name)}</span></button>`;
+  }).join('')}</div>`;
 }
 
 // ---------------------------------------------------------------- inspector (selection card)
@@ -274,7 +287,7 @@ function renderCard() {
     return;
   }
   card.hidden = false;
-  const key = `${sel.map((p) => `${p.id}:${p.state}`).join(',')}|${S.autoSnap}|${S.pivot}`;
+  const key = `${sel.map((p) => `${p.id}:${p.state}:${p.color || ''}`).join(',')}|${S.autoSnap}|${S.pivot}`;
   if (key === cardKey) return updateCardValues();
   cardKey = key;
 
@@ -290,7 +303,7 @@ function renderCard() {
   const head = one ? `
       <div class="insp-head">
         ${iconHtml(iconFor(one.key, one.state), pd.name)}
-        <div class="grow"><h3>${esc(pd.name)}</h3><p class="sub">${esc(displayName(one.key, one.state))} · ID ${pd.prop_id}</p></div>
+        <div class="grow"><h3>${esc(pd.name)}</h3><p class="sub">${esc(displayName(one.key, one.state))} · ID ${propIdOf(one.key, one.color)}</p></div>
         <button type="button" class="icon-btn" data-act="close" title="Deselect (Esc)" aria-label="Deselect">✕</button>
       </div>` : `
       <div class="insp-head">
@@ -342,7 +355,8 @@ function renderCard() {
       <div class="fields3 one">${field('facing', 'Face all', 'facing wide', { suffix: '°' })}</div>
       <button type="button" class="text-btn level" data-act="level" title="Set RX and RY to 0 on every selected prop">Stand all upright (clear tilt)</button>`;
 
-  card.innerHTML = `${head}${states}<div class="insp-sec">${position}</div><div class="insp-sec">${rotation}</div>
+  const colors = pd ? swatchesHtml(pd, (c) => sel.every((p) => p.color === c)) : '';
+  card.innerHTML = `${head}${states}${colors}<div class="insp-sec">${position}</div><div class="insp-sec">${rotation}</div>
       <div class="insp-actions">
         <button type="button" class="btn" data-act="dup" title="Ctrl+D">Duplicate</button>
         <button type="button" class="btn" data-act="save-set" title="Save as a reusable set (Ctrl+G)">Save as set</button>
@@ -390,6 +404,17 @@ function bindCard(card) {
     store.save();
     renderCard();
     tools.refreshGizmo();
+  }));
+  card.querySelectorAll('.swatch').forEach((b) => b.addEventListener('click', () => {
+    const sel = store.selectedProps();
+    const color = colorId(sel[0].key, b.dataset.color);
+    if (sel.every((p) => p.color === color)) return;
+    store.checkpoint();
+    for (const p of sel) {
+      if (color) p.color = color;
+      else delete p.color;
+    }
+    store.changed();
   }));
   card.querySelectorAll('[data-state]').forEach((b) => b.addEventListener('click', () => {
     const sel = store.selectedProps();

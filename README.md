@@ -12,6 +12,8 @@ Live at **https://propseteditor.com**.
   stacks, snapped to the ring, floor and stage.
 - **Edit** with move/rotate handles, number fields, arrow-key nudges,
   duplicate, mirror, line up and space evenly.
+- **Colors**: chairs and ladders come in the game's other colors (each one
+  its own game prop), before placing or afterwards.
 - **Physics**: drop props and let them land and topple.
 - **Walk mode**: Blender-style first-person navigation (Shift+`).
 - **Matches**: one remembered layout per match type, starting from the

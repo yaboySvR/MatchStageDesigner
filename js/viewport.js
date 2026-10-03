@@ -8,7 +8,7 @@ import { S } from './state.js';
 import { getGeometry, geomNow, geomFailed, loadEnvGeometry } from './geometry.js';
 import { profileToMatrix } from './rotation.js';
 import * as G from './gizmo.js';
-import { catalog, getProp } from './catalog.js';
+import { catalog, getProp, texturesOf } from './catalog.js';
 
 const DEG = Math.PI / 180;
 
@@ -36,7 +36,7 @@ const MAT = {
 // texture keeps that part plain). Until the textures have arrived the prop
 // keeps the plain look.
 const SKINNED = ['prop', 'sel', 'hover', 'bad', 'selBad'];
-const skins = new Map(); // prop key -> { ready, prop, sel, ... } or null
+const skins = new Map(); // "key|color" -> { ready, prop, sel, ... } or null
 const maps = new Map(); // texture file -> { map, ready, waiting: [fn] }
 let texLoader = null;
 
@@ -58,10 +58,11 @@ function textureOf(file, color = true) {
   return t;
 }
 
-function skinOf(key) {
-  if (skins.has(key)) return skins.get(key);
+function skinOf(key, color) {
+  const id = `${key}|${color || ''}`;
+  if (skins.has(id)) return skins.get(id);
   const pd = getProp(key);
-  const files = pd?.textures;
+  const files = texturesOf(key, color);
   let skin = null;
   if (files?.some(Boolean)) {
     skin = { ready: false };
@@ -92,11 +93,11 @@ function skinOf(key) {
       });
     }
   }
-  skins.set(key, skin);
+  skins.set(id, skin);
   return skin;
 }
-const look = (key, k) => {
-  const skin = key != null && skinOf(key);
+const look = (key, k, color) => {
+  const skin = key != null && skinOf(key, color);
   return skin?.ready ? skin[k] : MAT[k];
 };
 
@@ -326,7 +327,10 @@ const lookFor = (id) => {
   if (id === hoverId) return 'hover';
   return overlapIds.has(id) ? 'bad' : 'prop';
 };
-const materialFor = (id) => look(propMeshes.get(id)?.userData.key, lookFor(id));
+const materialFor = (id) => {
+  const d = propMeshes.get(id)?.userData;
+  return look(d?.key, lookFor(id), d?.color);
+};
 
 export function setOverlaps(ids) {
   overlapIds = ids;
@@ -354,11 +358,11 @@ function resyncSoon() {
   }, 0);
 }
 
-function waitForGeometry(key, state) {
-  const id = `${key}\u0000${state}`;
-  if (waiting.has(id) || geomFailed(key, state)) return;
+function waitForGeometry(key, state, color) {
+  const id = `${key}\u0000${state}\u0000${color || ''}`;
+  if (waiting.has(id) || geomFailed(key, state, color)) return;
   waiting.add(id);
-  getGeometry(key, state)
+  getGeometry(key, state, color)
     .then(resyncSoon, (e) => console.error(e))
     .finally(() => waiting.delete(id));
 }
@@ -368,9 +372,9 @@ export function syncProps() {
   for (const p of S.props) {
     alive.add(p.id);
     let mesh = propMeshes.get(p.id);
-    const geom = geomNow(p.key, p.state);
+    const geom = geomNow(p.key, p.state, p.color);
     if (!geom) {
-      waitForGeometry(p.key, p.state);
+      waitForGeometry(p.key, p.state, p.color);
       if (!mesh) continue;
       // ids are reused (switching matches, profiles): a mesh still showing
       // another prop goes until this one's model is here
@@ -388,6 +392,7 @@ export function syncProps() {
       mesh.geometry = geom;
     }
     mesh.userData.key = p.key;
+    mesh.userData.color = p.color;
     place(mesh, p);
     mesh.material = materialFor(p.id);
   }
@@ -406,15 +411,16 @@ export async function preloadProps() {
   const jobs = [];
   for (const pd of catalog.props.values()) {
     if (pd.custom) continue;
+    const colors = [undefined, ...(pd.colors || []).slice(1).map((c) => c.id)];
     jobs.push(() => new Promise((resolve) => {
-      const skin = skinOf(pd.key);
-      const maps = [...(pd.textures || []).filter(Boolean).map((f) => textureOf(f)), ...(pd.normal ? [textureOf(pd.normal, false)] : [])].filter((t) => !t.ready);
+      for (const c of colors) skinOf(pd.key, c);
+      const files = [...new Set(colors.flatMap((c) => texturesOf(pd.key, c) || []))].filter(Boolean);
+      const maps = [...files.map((f) => textureOf(f)), ...(pd.normal ? [textureOf(pd.normal, false)] : [])].filter((t) => !t.ready);
       let left = maps.length + 1;
       const done = () => { if (--left <= 0) resolve(); };
       setTimeout(resolve, 20000); // a texture that never comes doesn't hold up the rest
       for (const t of maps) t.waiting.push(done);
-      Promise.allSettled(pd.stateOrder.map((s) => getGeometry(pd.key, s))).then(done);
-      return skin;
+      Promise.allSettled(colors.flatMap((c) => pd.stateOrder.map((s) => getGeometry(pd.key, s, c)))).then(done);
     }));
   }
   const worker = async () => { while (jobs.length) await jobs.shift()(); };
@@ -508,7 +514,7 @@ export function screenshot(longEdge = 2560) {
   const showHandles = G.hideForPicture();
   const aids = [...ghostMeshes, ...dropGuides.flatMap((g) => [g.line, g.ring])].filter((o) => o.visible);
   for (const o of aids) o.visible = false;
-  for (const mesh of propMeshes.values()) mesh.material = look(mesh.userData.key, 'prop');
+  for (const mesh of propMeshes.values()) mesh.material = look(mesh.userData.key, 'prop', mesh.userData.color);
   const ratio = renderer.getPixelRatio();
   renderer.setPixelRatio(1);
   renderer.setSize(W, H, false);
@@ -548,9 +554,9 @@ export function renderThumbnail(items, size = 192) {
   s.add(hemi, sun);
   const box = new THREE.Box3();
   for (const it of items) {
-    const g = geomNow(it.key, it.state);
+    const g = geomNow(it.key, it.state, it.color) || geomNow(it.key, it.state);
     if (!g) continue;
-    const m = new THREE.Mesh(g, look(it.key, 'prop'));
+    const m = new THREE.Mesh(g, look(it.key, 'prop', it.color));
     place(m, it);
     m.updateMatrixWorld();
     box.expandByObject(m);

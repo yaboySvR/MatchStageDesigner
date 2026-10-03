@@ -4,7 +4,7 @@
 // Position is Blender world space. Rotation values are carried through
 // verbatim; see rotation.js for how they map to an orientation.
 
-import { catalog, getProp, stateId } from './catalog.js';
+import { catalog, getProp, stateId, propIdOf, byPropId } from './catalog.js';
 import { pyFixed3 } from './rotation.js';
 
 export function profileLine(p) {
@@ -12,14 +12,15 @@ export function profileLine(p) {
   const sid = stateId(p.state);
   if (!pd || sid === undefined) return null;
   const f = pyFixed3;
-  return `PROP,${pd.prop_id},${f(p.x)},${f(p.y)},${f(p.z)},${f(p.rx)},${f(p.ry)},${f(p.rz)},${sid};\n`;
+  return `PROP,${propIdOf(p.key, p.color)},${f(p.x)},${f(p.y)},${f(p.z)},${f(p.rx)},${f(p.ry)},${f(p.rz)},${sid};\n`;
 }
 
 export function exportProfile(props, unknownLines = []) {
   return props.map(profileLine).filter(Boolean).join('') + unknownLines.map((l) => `${l}\n`).join('');
 }
 
-// (prop_id, state id) -> [key, state] of the catalog prop, or null.
+// (prop_id, state id) -> [key, state, color] of the catalog prop, or null
+// (color: undefined for the base color).
 export function catalogMatcher() {
   const map = new Map(); // "pid:sid" -> [key, state]
   const reverseStates = new Map(Object.entries(catalog.stateDefs).map(([k, v]) => [v, k]));
@@ -34,7 +35,11 @@ export function catalogMatcher() {
     if (hit) return hit;
     const st = reverseStates.get(sid);
     const pd = st && [...catalog.props.values()].find((p) => p.prop_id === pid && st in p.states);
-    return pd ? [pd.key, st] : null;
+    if (pd) return [pd.key, st];
+    // another color of a prop: the same states as it
+    const other = byPropId(pid);
+    const state = other && getProp(other[0]).stateOrder.find((s) => stateId(s) === sid);
+    return other?.[1] && state ? [other[0], state, other[1]] : null;
   };
 }
 
@@ -57,7 +62,7 @@ export function parseProfile(text) {
 
     const hit = match(pid, sid);
     if (!hit) { unknown.push(`${entry};`); continue; }
-    items.push({ key: hit[0], state: hit[1], x, y, z, rx, ry, rz });
+    items.push({ key: hit[0], state: hit[1], color: hit[2], x, y, z, rx, ry, rz });
   }
   return { items, unknown, invalid };
 }

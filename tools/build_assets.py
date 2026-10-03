@@ -91,6 +91,19 @@ NO_TEXTURE = set()
 NORMAL_MAPS = {"STEEL"}
 # See-through props: as see-through as their game texture's alpha says.
 SEE_THROUGH = {"GLASS"}
+# The same prop in other colors (other game props, same states): key ->
+# (the base's color name, [(name, game prop id, {state: game mesh} when its
+# model differs, else None)]). The others share the base's model and UVs,
+# only their texture changes.
+COLORS = {
+    "CHAIR": ("Black", [
+        ("Grey", 152, None),
+        ("Beige", 4324, None),
+        ("Blue", 4325, None),
+        ("Mocap", 4323, {"Set Up CHAIR": 2, "Default": 0}),  # with its mocap markers
+    ]),
+    "LADDER": ("Silver", [("Orange", 9326, None)]),
+}
 TEXTURE_SIZE = 1024
 
 # Props in props.json that the web app leaves out (commentary table + cover).
@@ -266,6 +279,50 @@ def convert_normal(src: Path, dst: Path, color: Path):
     Image.fromarray((np.asarray(c) * shade).round().astype(np.uint8)).save(color, "WEBP", quality=85, method=6)
 
 
+def swatch(texture: Path):
+    """A texture's color, for its button: the most colorful eighth of it
+    (the rest of a texture sheet is often grey metal, shadow, ...)."""
+    import colorsys
+    from PIL import Image
+
+    img = Image.open(texture).convert("RGB").resize((64, 64), Image.LANCZOS)
+    px = sorted(img.getdata(), key=lambda c: colorsys.rgb_to_hsv(*(x / 255 for x in c))[1] * max(c))
+    top = px[-len(px) // 8:]
+    return "#" + "".join(f"{round(sum(c[i] for c in top) / len(top)):02x}" for i in range(3))
+
+
+def build_colors(key, base_folder: Path, game_props: Path, state_objs, base_texture: Path):
+    """The catalog "colors" of a prop: the base color first, then each
+    variant {"id", "name", "prop_id", "swatch", "texture", "states"
+    (variants with a model of their own)}."""
+    import numpy as np
+    from game_models import color_textures, model_files, variant_model
+
+    base_name, variants = COLORS[key]
+    out = [{"id": base_name.lower(), "name": base_name, "swatch": swatch(base_texture)}]
+    for name, prop_id, meshes in variants:
+        folder = game_folder(game_props, prop_id)
+        if not folder:
+            print(f"  ! {key} {name}: no game folder for {prop_id}")
+            continue
+        _, mtls = model_files(folder)
+        tex = next(t for t in color_textures(mtls, folder / "Textures").values() if t)
+        cid = name.lower()
+        entry = {"id": cid, "name": name, "prop_id": prop_id, "swatch": swatch(tex), "texture": f"{key.lower()}_{cid}.webp"}
+        convert_texture(tex, TEXTURES_OUT / entry["texture"])
+        if meshes:
+            entry["states"] = {}
+            for state, mesh in meshes.items():
+                obj = state_objs[state]
+                pos, uv, tris = variant_model(np.array(read_obj(obj)[0]), base_folder, folder, mesh)
+                bin_name = f"{obj.stem.lower()}_{cid}.bin"
+                write_bin(MODELS_OUT / bin_name, pos.tolist(), tris.ravel().tolist(), uv.tolist())
+                entry["states"][state] = bin_name
+        out.append(entry)
+        print(f"  {folder.name:34s} -> {key} in {name}" + (f" ({', '.join(entry['states'].values())})" if meshes else ""))
+    return out
+
+
 def texture_prop(key, folder: Path, srcs):
     """Textures one prop from the game's model. Returns ({bin name: (corner
     uvs, group per triangle)}, [texture file name or None per group], extra
@@ -395,6 +452,11 @@ def main():
             per_bin, names, extra = texture_prop(p["key"], folder, {b: needed[b] for b in states.values()})
             textured.update(per_bin)
             entry.update(extra)
+            if p["key"] in COLORS and names:
+                from game_models import color_textures, model_files
+
+                base_tex = next(t for t in color_textures(model_files(folder)[1], folder / "Textures").values() if t)
+                entry["colors"] = build_colors(p["key"], folder, args.game_props, {st: needed[b] for st, b in states.items()}, base_tex)
             if len(names) == 1:
                 entry["texture"] = names[0]
             elif names:
@@ -404,7 +466,7 @@ def main():
                 if k in old[p["key"]]:
                     entry[k] = old[p["key"]][k]
                     kept.update(states.values())
-            for k in ("normal", "opacity"):
+            for k in ("normal", "opacity", "colors"):
                 if k in old[p["key"]]:
                     entry[k] = old[p["key"]][k]
         icon_png = icon_map.get(p["key"]) or p.get("icon")

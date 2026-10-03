@@ -39,6 +39,7 @@ function register(p, custom = null) {
     textures: custom ? null : p.textures || (p.texture ? [p.texture] : null),
     normal: custom ? null : p.normal || null,   // its bump map (steel steps)
     opacity: custom ? 1 : p.opacity ?? 1,       // see-through (glass)
+    colors: custom ? null : p.colors || null,   // the same prop in other colors (colorOf)
     unlistedDefault: !!p.unlisted,
     custom,
   };
@@ -63,6 +64,34 @@ export async function loadCatalog() {
 }
 
 export const getProp = (key) => catalog.props.get(key);
+
+// Colors: some props come in other colors, each another game prop with the
+// same states ({ id, name, prop_id, swatch, texture, states? }; the first is
+// the base one). A placed prop's `color` is the id of one of the others, or
+// unset for the base color.
+export function colorOf(key, color) {
+  const cs = getProp(key)?.colors;
+  return (color && cs?.slice(1).find((c) => c.id === color)) || null;
+}
+// the color as a prop record keeps it: a known other color's id, or undefined
+export const colorId = (key, color) => colorOf(key, color)?.id;
+export const propIdOf = (key, color) => colorOf(key, color)?.prop_id ?? getProp(key)?.prop_id;
+// model file of a state (a color can have models of its own: the mocap chair)
+export const modelOf = (key, state, color) => colorOf(key, color)?.states?.[state] ?? getProp(key)?.states[state];
+export function texturesOf(key, color) {
+  const c = colorOf(key, color);
+  return c?.texture ? [c.texture] : getProp(key)?.textures;
+}
+// (key, color) of the catalog prop with this game prop id: a color's id
+// finds its prop, in that color
+export function byPropId(pid) {
+  for (const pd of catalog.props.values()) {
+    if (pd.prop_id === pid) return [pd.key, undefined];
+    const c = pd.colors?.slice(1).find((x) => x.prop_id === pid);
+    if (c) return [pd.key, c.id];
+  }
+  return null;
+}
 
 export function isListed(key) {
   const o = unlistedOverrides[key];

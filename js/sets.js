@@ -82,6 +82,7 @@ export function captureSet(props, name) {
   const ground = groundOf(props);
   const items = props.map((p) => ({
     key: p.key, state: p.state, dx: p.x - ax, dy: p.y - ay, dz: p.z - ground, rx: p.rx, ry: p.ry, rz: p.rz,
+    ...(p.color ? { color: p.color } : {}),
   }));
   return { id: newId(), v: 2, name: name || defaultName(props), created: Date.now(), items, thumb: null };
 }
@@ -102,7 +103,7 @@ export function placeSet(set, x, y, groundZ, yaw = 0, mirror = false) {
       if (mirror) rot = mirrorX(...rot); // left-right in the set's own frame
       if (turned) rot = rotateProfile(...rot, D, yaw);
       return {
-        key: it.key, state: it.state,
+        key: it.key, state: it.state, color: it.color,
         x: x + dx * c - it.dy * s, y: y + dx * s + it.dy * c, z: groundZ + it.dz,
         rx: rot[0], ry: rot[1], rz: rot[2],
       };
@@ -169,7 +170,8 @@ const MAX_ITEMS = 1000;
 const MAX_JSON = 4 << 20; // a code never unpacks to more than this
 
 const r3 = (v) => Math.round(v * 1000) / 1000 || 0; // (|| 0: no -0)
-const packItems = (items) => items.map((it) => [it.key, it.state, r3(it.dx), r3(it.dy), r3(it.dz), r3(it.rx), r3(it.ry), r3(it.rz)]);
+// a prop in another color has its color last (codes from before colors have 8)
+const packItems = (items) => items.map((it) => [it.key, it.state, r3(it.dx), r3(it.dy), r3(it.dz), r3(it.rx), r3(it.ry), r3(it.rz), ...(it.color ? [it.color] : [])]);
 
 function toBase64Url(bytes) {
   let bin = '';
@@ -219,8 +221,8 @@ export async function setFromCode(text) {
   }
   const rows = Array.isArray(d?.i) ? d.i.slice(0, MAX_ITEMS) : [];
   const items = rows
-    .filter((row) => Array.isArray(row) && row.length === 8)
-    .map(([key, state, dx, dy, dz, rx, ry, rz]) => ({ key, state, dx, dy, dz, rx, ry, rz }))
+    .filter((row) => Array.isArray(row) && (row.length === 8 || row.length === 9))
+    .map(([key, state, dx, dy, dz, rx, ry, rz, color]) => ({ key, state, dx, dy, dz, rx, ry, rz, ...(typeof color === 'string' ? { color } : {}) }))
     .filter(validItem);
   if (!items.length) throw new Error('This set code has no props in it');
   const name = typeof d.n === 'string' && d.n.trim() ? d.n.trim().slice(0, 60) : defaultName(items);

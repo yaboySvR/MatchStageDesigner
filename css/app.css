@@ -130,6 +130,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 }
 .state-chip img { width: 22px; height: 22px; object-fit: contain; }
 .state-chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+/* a prop's colors (other game props, same model) */
+.swatches { display: flex; gap: 4px; flex-wrap: wrap; flex-basis: 100%; }
+#selection-card .swatches { margin: 0 0 12px; }
+.swatch {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 8px 3px 3px; border-radius: 99px;
+  background: var(--raised); border: 1px solid var(--border);
+  font-size: 11.5px; font-weight: 500; color: var(--muted);
+}
+.swatch i { width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
+.swatch:hover { color: var(--text); }
+.swatch[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
 
 .tabs { display: flex; gap: 2px; background: var(--bg); padding: 3px; border-radius: 9px; border: 1px solid var(--border); }
 .tabs button {
