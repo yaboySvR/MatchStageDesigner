@@ -36,7 +36,7 @@ import * as store from './store.js';
 import { snapZ } from './snapping.js';
 import { settings, keyId, keyLabel } from './settings.js';
 import { getProp } from './catalog.js';
-import { openWheel, wheelMove, wheelConfirm, wheelCancel } from './wheel.js';
+import { openWheel, wheelMove, wheelConfirm, wheelCancel, wheelReach } from './wheel.js';
 
 const DEG = Math.PI / 180;
 const UNIT = 100;                  // world units per meter
@@ -50,7 +50,6 @@ const TELEPORT_TIME = 0.2;         // seconds
 const JUMP_TIME_MAX = 0.2;         // hold V this long for a full jump;
 const JUMP_SPEED_MIN = 1 * UNIT;   // a tap takes off at this speed
 const SPIKE = 500;                 // mouse jumps bigger than this are browser glitches
-const PICK_REACH = 360;            // prop wheel: how far the (hidden) pointer can go from the middle
 const DOWN = { x: 0, y: 0, z: -1 };
 
 let w = null;                      // the walk in progress
@@ -284,7 +283,8 @@ function onPointerMove(e) {
     p.x += x;
     p.y += y;
     const d = Math.hypot(p.x, p.y);
-    if (d > PICK_REACH) { p.x *= PICK_REACH / d; p.y *= PICK_REACH / d; }
+    const reach = wheelReach(); // prop wheel: how far the (hidden) pointer can go from the middle
+    if (d > reach) { p.x *= reach / d; p.y *= reach / d; }
     wheelMove(p.cx + p.x, p.cy + p.y);
     return;
   }

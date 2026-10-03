@@ -1,9 +1,17 @@
-// Hold-Q radial prop picker (port of tools/wheel_tool.py). Multi-state props
-// show their alternate state as a second slot, further out on the same spoke.
+// Hold-Q radial prop picker (port of tools/wheel_tool.py), kept compact: the
+// props sit on up to three rings, the first ones (the catalog's order: chair,
+// table, ladder, ...) on the inner ring. The slot nearest the pointer is the
+// one picked. A multi-state prop shows its alternate state as a second slot
+// right beside it; the pointer can go over to it without losing the prop.
 
 import { listedProps, iconFor, initials } from './catalog.js';
 
 const TAU = Math.PI * 2;
+const SLOT = 36;          // px, a slot's size
+const PITCH = SLOT + 7;   // px between slot centers along a ring
+const RING_GAP = SLOT + 9;
+const INNER = 92;         // px, the inner ring's radius
+const MAX_RINGS = 3;
 let st = null;
 
 export const wheelOpen = () => !!st;
@@ -14,74 +22,98 @@ function iconHtml(url, name) {
   return url ? `<img src="${esc(url)}" alt="" draggable="false">` : `<span>${esc(initials(name))}</span>`;
 }
 
+// How many rings n props need, and how many go on each (in proportion to the
+// ring's length, so they're spaced alike). Past what three rings hold, the
+// outer ring takes the rest, packed closer.
+function layout(n) {
+  let rings = 1;
+  const cap = (k) => Math.floor((TAU * (INNER + k * RING_GAP)) / PITCH);
+  while (rings < MAX_RINGS) {
+    let total = 0;
+    for (let k = 0; k < rings; k++) total += cap(k);
+    if (total >= n) break;
+    rings++;
+  }
+  const radii = Array.from({ length: rings }, (_, k) => INNER + k * RING_GAP);
+  const sum = radii.reduce((a, r) => a + r, 0);
+  const counts = radii.map((r) => Math.round((n * r) / sum));
+  counts[rings - 1] += n - counts.reduce((a, c) => a + c, 0);
+  return { radii, counts };
+}
+
+// How far the wheel reaches from its middle (walk.js keeps its hidden pointer inside).
+export const wheelReach = () => (st ? st.reach : INNER + (MAX_RINGS - 1) * RING_GAP + SLOT * 2);
+
 export function openWheel(clientX, clientY, onPick) {
   const props = listedProps();
   if (!props.length) return false;
   const el = document.getElementById('wheel');
   el.hidden = false;
   const rect = el.getBoundingClientRect();
-  const n = props.length;
-
-  const R = Math.max(110, Math.min(400, Math.min(rect.width, rect.height) / 2 - 90));
-  const slot = Math.max(24, Math.min(60, (TAU * R / n) * 0.9));
-  const hov = Math.round(slot * 1.4);
-  const centerR = Math.min(140, R * 0.36);
-  const reach = R + hov * 1.6 + 10;
+  const { radii, counts } = layout(props.length);
+  const outer = radii.at(-1);
+  const reach = outer + SLOT * 1.9;
   const clamp = (v, lo, hi) => (lo > hi ? (lo + hi) / 2 : Math.min(Math.max(v, lo), hi));
   const ox = clamp(clientX - rect.left, reach, rect.width - reach);
   const oy = clamp(clientY - rect.top, reach, rect.height - reach);
 
-  const discR = R + slot / 2 + 22;
+  // every slot's spot: ring k, evenly round it, starting at the top
+  const spots = [];
+  radii.forEach((r, k) => {
+    const n = counts[k];
+    const turn = k % 2 ? Math.PI / n : 0; // stagger neighbouring rings
+    for (let j = 0; j < n; j++) {
+      const a = Math.PI / 2 - (TAU * j) / n - turn;
+      spots.push({ a, r, x: ox + r * Math.cos(a), y: oy - r * Math.sin(a) });
+    }
+  });
+
+  const centerR = INNER - SLOT / 2 - 12;
+  const discR = outer + SLOT / 2 + 14;
   el.innerHTML = `
     <div class="disc" style="left:${ox - discR}px;top:${oy - discR}px;width:${discR * 2}px;height:${discR * 2}px"></div>
-    <div class="spoke" hidden></div>
-    ${props.map((p, i) => {
-      const a = Math.PI / 2 - (TAU * i) / n;
-      return `<div class="slot" data-i="${i}" style="left:${ox + R * Math.cos(a)}px;top:${oy - R * Math.sin(a)}px;width:${slot}px;height:${slot}px">${iconHtml(p.icon, p.name)}</div>`;
-    }).join('')}
-    <div class="slot alt" hidden style="width:${hov}px;height:${hov}px"></div>
+    ${props.map((p, i) => `<div class="slot" data-i="${i}" style="left:${spots[i].x}px;top:${spots[i].y}px;width:${SLOT}px;height:${SLOT}px">${iconHtml(p.icon, p.name)}</div>`).join('')}
+    <div class="slot alt" hidden></div>
     <div class="center" style="left:${ox}px;top:${oy}px;width:${centerR * 2}px;height:${centerR * 2}px"></div>
-    <div class="name" style="left:${ox}px;top:${oy + centerR + 14}px">Prop wheel</div>`;
+    <div class="name" style="left:${ox}px;top:${oy + discR + 10}px">Prop wheel</div>`;
 
   st = {
-    el, props, n, R, slot, hov, centerR, ox, oy, rect, onPick,
+    el, props, spots, centerR, ox, oy, rect, onPick, reach,
     hovered: -1, alt: 0,
     slots: [...el.querySelectorAll('.slot[data-i]')],
     altEl: el.querySelector('.slot.alt'),
     centerEl: el.querySelector('.center'),
     nameEl: el.querySelector('.name'),
-    spokeEl: el.querySelector('.spoke'),
   };
   render();
   return true;
 }
 
-function slotPos(i) {
-  const a = Math.PI / 2 - (TAU * i) / st.n;
-  return { a, x: st.ox + st.R * Math.cos(a), y: st.oy - st.R * Math.sin(a) };
-}
-
+// The alternate state's slot: just outside the prop's own, on its spoke.
 function altPos(i) {
-  const { a, x, y } = slotPos(i);
-  const gap = st.hov + 12;
+  const { a, x, y } = st.spots[i];
+  const gap = SLOT * 1.15;
   return { x: x + Math.cos(a) * gap, y: y - Math.sin(a) * gap };
 }
 
 export function wheelMove(clientX, clientY) {
   if (!st) return;
   const mx = clientX - st.rect.left, my = clientY - st.rect.top;
-  const dx = mx - st.ox, dy = -(my - st.oy);
-  if (Math.hypot(dx, dy) > st.centerR + 5) {
-    const norm = ((Math.PI / 2 - Math.atan2(dy, dx)) % TAU + TAU) % TAU;
-    const i = Math.round(norm / (TAU / st.n)) % st.n;
-    st.hovered = i;
-    st.alt = 0;
-    if (st.props[i].altIcon) {
-      const m = slotPos(i), a = altPos(i);
-      st.alt = Math.hypot(mx - a.x, my - a.y) < Math.hypot(mx - m.x, my - m.y) ? 1 : 0;
-    }
-  } else {
+  const d = (p) => Math.hypot(mx - p.x, my - p.y);
+  const held = st.hovered >= 0 && st.props[st.hovered].altIcon ? st.hovered : -1;
+  if (held >= 0 && Math.min(d(st.spots[held]), d(altPos(held))) < SLOT * 0.75) {
+    // still on the prop or its other state
+    st.alt = d(altPos(held)) < d(st.spots[held]) ? 1 : 0;
+  } else if (Math.hypot(mx - st.ox, my - st.oy) <= st.centerR + 4) {
     st.hovered = -1;
+    st.alt = 0;
+  } else {
+    let best = -1, bd = Infinity;
+    st.spots.forEach((p, i) => {
+      const di = d(p);
+      if (di < bd) { bd = di; best = i; }
+    });
+    st.hovered = best;
     st.alt = 0;
   }
   render();
@@ -93,16 +125,13 @@ function render() {
     const on = i === hi;
     s.classList.toggle('hover', on && !alt);
     s.classList.toggle('dim', on && !!alt);
-    const size = on ? st.hov : st.slot;
-    s.style.width = s.style.height = `${size}px`;
   });
 
   const pd = hi >= 0 ? st.props[hi] : null;
   if (pd?.altIcon) {
     const a = altPos(hi);
     st.altEl.hidden = false;
-    st.altEl.style.left = `${a.x}px`;
-    st.altEl.style.top = `${a.y}px`;
+    Object.assign(st.altEl.style, { left: `${a.x}px`, top: `${a.y}px`, width: `${SLOT}px`, height: `${SLOT}px` });
     st.altEl.className = `slot alt ${alt ? 'hover' : 'dim'}`;
     st.altEl.innerHTML = iconHtml(pd.altIcon.icon, pd.name);
   } else {
@@ -110,18 +139,10 @@ function render() {
   }
 
   if (pd) {
-    const p = slotPos(hi);
-    const len = Math.hypot(p.x - st.ox, p.y - st.oy);
-    Object.assign(st.spokeEl.style, {
-      left: `${st.ox}px`, top: `${st.oy - 1}px`, width: `${len}px`,
-      transform: `rotate(${Math.atan2(p.y - st.oy, p.x - st.ox)}rad)`,
-    });
-    st.spokeEl.hidden = false;
     const state = alt ? pd.altIcon.state : pd.defaultState;
     st.centerEl.innerHTML = iconHtml(iconFor(pd.key, state), pd.name);
-    st.nameEl.innerHTML = `${esc(pd.name)}${alt ? `<small>(${esc(state)})</small>` : ''}`;
+    st.nameEl.innerHTML = `${esc(pd.name)}${pd.altIcon ? `<small>${esc(state)}</small>` : ''}`;
   } else {
-    st.spokeEl.hidden = true;
     st.centerEl.innerHTML = '';
     st.nameEl.textContent = 'Prop wheel';
   }
