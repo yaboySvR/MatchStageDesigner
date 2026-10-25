@@ -101,6 +101,8 @@ COLORS = {
         ("Beige", 4324, None),
         ("Blue", 4325, None),
         ("Mocap", 4323, {"Set Up CHAIR": 2, "Default": 0}),  # with its mocap markers
+        ("Damian", 6504, None),
+        ("Royal Rumble", 4328, {"Set Up CHAIR": 2, "Default": 0}),  # its own model
     ]),
     "LADDER": ("Silver", [("Orange", 9326, None)]),
     "MEGAPHONE": ("Hearts", [("Hart 93", 9407, None)]),

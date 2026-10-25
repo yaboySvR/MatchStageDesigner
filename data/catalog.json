@@ -56,6 +56,24 @@
       "Set Up CHAIR": "chair_mocap.bin",
       "Default": "ground_chair_mocap.bin"
      }
+    },
+    {
+     "id": "damian",
+     "name": "Damian",
+     "prop_id": 6504,
+     "swatch": "#867692",
+     "texture": "chair_damian.webp"
+    },
+    {
+     "id": "royal_rumble",
+     "name": "Royal Rumble",
+     "prop_id": 4328,
+     "swatch": "#566877",
+     "texture": "chair_royal_rumble.webp",
+     "states": {
+      "Set Up CHAIR": "chair_royal_rumble.bin",
+      "Default": "ground_chair_royal_rumble.bin"
+     }
     }
    ],
    "texture": "chair.webp",
@@ -727,6 +745,71 @@
    },
    "texture": "stretcher.webp",
    "icon": "stretcher.webp"
+  },
+  {
+   "key": "CLOWN_SHOE",
+   "label": [
+    "Clown Shoe",
+    "Clown_Shoe"
+   ],
+   "prop_id": 4125,
+   "states": {
+    "Default": "clown_shoe.bin"
+   },
+   "texture": "clown_shoe.webp",
+   "icon": "clown_shoe.webp"
+  },
+  {
+   "key": "CLOWN_HORN",
+   "label": [
+    "Clown Horn",
+    "Clown_Horn"
+   ],
+   "prop_id": 4124,
+   "states": {
+    "Default": "clown_horn.bin"
+   },
+   "texture": "clown_horn.webp",
+   "icon": "clown_horn.webp"
+  },
+  {
+   "key": "MANNEQUIN_ARM",
+   "label": [
+    "Mannequin Arm",
+    "Mannequin_Arm"
+   ],
+   "prop_id": 4040,
+   "states": {
+    "Default": "mannequin_arm.bin"
+   },
+   "texture": "mannequin_arm.webp",
+   "icon": "mannequin_arm.webp"
+  },
+  {
+   "key": "URN",
+   "label": [
+    "Urn",
+    "Urn"
+   ],
+   "prop_id": 9398,
+   "states": {
+    "Default": "urn.bin"
+   },
+   "texture": "urn.webp",
+   "icon": "urn.webp"
+  },
+  {
+   "key": "CHANCLA",
+   "label": [
+    "Chancla",
+    "Chancla"
+   ],
+   "prop_id": 4119,
+   "states": {
+    "Default": "chancla.bin"
+   },
+   "texture": "chancla.webp",
+   "icon": "chancla.webp"
   },
   {
    "key": "BEER_CAN",
