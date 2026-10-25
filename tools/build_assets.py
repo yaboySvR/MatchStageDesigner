@@ -103,6 +103,7 @@ COLORS = {
         ("Mocap", 4323, {"Set Up CHAIR": 2, "Default": 0}),  # with its mocap markers
     ]),
     "LADDER": ("Silver", [("Orange", 9326, None)]),
+    "MEGAPHONE": ("Hearts", [("Hart 93", 9407, None)]),
 }
 TEXTURE_SIZE = 1024
 
@@ -299,7 +300,8 @@ def build_colors(key, base_folder: Path, game_props: Path, state_objs, base_text
     from game_models import color_textures, model_files, variant_model
 
     base_name, variants = COLORS[key]
-    out = [{"id": base_name.lower(), "name": base_name, "swatch": swatch(base_texture)}]
+    slug = lambda name: re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+    out = [{"id": slug(base_name), "name": base_name, "swatch": swatch(base_texture)}]
     for name, prop_id, meshes in variants:
         folder = game_folder(game_props, prop_id)
         if not folder:
@@ -307,7 +309,7 @@ def build_colors(key, base_folder: Path, game_props: Path, state_objs, base_text
             continue
         _, mtls = model_files(folder)
         tex = next(t for t in color_textures(mtls, folder / "Textures").values() if t)
-        cid = name.lower()
+        cid = slug(name)
         entry = {"id": cid, "name": name, "prop_id": prop_id, "swatch": swatch(tex), "texture": f"{key.lower()}_{cid}.webp"}
         convert_texture(tex, TEXTURES_OUT / entry["texture"])
         if meshes:

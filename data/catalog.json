@@ -19,7 +19,6 @@
     "Set Up CHAIR": "chair.bin",
     "Default": "ground_chair.bin"
    },
-   "texture": "chair.webp",
    "colors": [
     {
      "id": "black",
@@ -59,6 +58,7 @@
      }
     }
    ],
+   "texture": "chair.webp",
    "icon": "chair_folded.webp",
    "alt_icon": {
     "state": "Set Up CHAIR",
@@ -96,7 +96,6 @@
     "Set Up": "ladder.bin",
     "Default": "ground_ladder.bin"
    },
-   "texture": "ladder.webp",
    "colors": [
     {
      "id": "silver",
@@ -111,6 +110,7 @@
      "texture": "ladder_orange.webp"
     }
    ],
+   "texture": "ladder.webp",
    "icon": "ladder_ground.webp",
    "alt_icon": {
     "state": "Set Up",
@@ -127,8 +127,8 @@
    "states": {
     "Default": "upper_stair.bin"
    },
-   "texture": "steel.webp",
    "normal": "steel_nrm.webp",
+   "texture": "steel.webp",
    "icon": "steelstepsupper.webp"
   },
   {
@@ -180,8 +180,8 @@
    "states": {
     "Default": "glass.bin"
    },
-   "texture": "glass.webp",
    "opacity": 0.28,
+   "texture": "glass.webp",
    "icon": "glass.webp"
   },
   {
@@ -687,6 +687,46 @@
    },
    "texture": "bludgeon_hammer.webp",
    "icon": "bludgeon_hammer.webp"
+  },
+  {
+   "key": "MEGAPHONE",
+   "label": [
+    "Megaphone",
+    "Megaphone"
+   ],
+   "prop_id": 9333,
+   "states": {
+    "Default": "megaphone.bin"
+   },
+   "colors": [
+    {
+     "id": "hearts",
+     "name": "Hearts",
+     "swatch": "#8c1414"
+    },
+    {
+     "id": "hart_93",
+     "name": "Hart 93",
+     "prop_id": 9407,
+     "swatch": "#ab7839",
+     "texture": "megaphone_hart_93.webp"
+    }
+   ],
+   "texture": "megaphone.webp",
+   "icon": "megaphone.webp"
+  },
+  {
+   "key": "STRETCHER",
+   "label": [
+    "Stretcher",
+    "Stretcher"
+   ],
+   "prop_id": 2141,
+   "states": {
+    "Default": "stretcher.bin"
+   },
+   "texture": "stretcher.webp",
+   "icon": "stretcher.webp"
   },
   {
    "key": "BEER_CAN",
