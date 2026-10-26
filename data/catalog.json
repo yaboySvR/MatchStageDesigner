@@ -741,7 +741,7 @@
    ],
    "prop_id": 2141,
    "states": {
-    "Default": "stretcher.bin"
+    "Set Up": "stretcher.bin"
    },
    "texture": "stretcher.webp",
    "icon": "stretcher.webp"
