@@ -9,6 +9,15 @@
 // which needs a click or key press; Save, Ctrl+S and switching matches all
 // are. The first save over an existing file keeps the original next to it as
 // <name>.bak, and that copy is never overwritten.
+//
+// The folder picked can be the PropsSet folder itself, or the Environment
+// folder above it, or the BakeMe folder above that. From the two last, the
+// site also reaches Environment\EnvironmentSetup, whose PropsPositions.jsfb
+// says which match types load which PropsSet file: saving a match's file
+// adds its rows there when they're missing (positions.js), as the mod tool
+// does. From the PropsSet folder itself that file can't be reached.
+
+import * as POS from './positions.js';
 
 const DB = 'ppg-files';
 const STORE = 'handles';
@@ -48,12 +57,45 @@ export async function folder() {
   return cached;
 }
 
+// A subfolder of dir, or null if there's none.
+async function sub(dir, name, create = false) {
+  try {
+    return await dir.getDirectoryHandle(name, { create });
+  } catch (e) {
+    if (e.name === 'NotFoundError' || e.name === 'TypeMismatchError') return null;
+    throw e;
+  }
+}
+
+// The Environment folder the picked folder is, or holds; null when the
+// picked folder is the PropsSet folder itself (or anything else).
+async function environment(dir) {
+  if (dir.name.toLowerCase() === 'environment' || (await sub(dir, 'PropsSet'))) return dir;
+  const env = await sub(dir, 'Environment');
+  return env && (await sub(env, 'PropsSet')) ? env : null;
+}
+
+// Where the PropsSet files are, from the picked folder (create: make the
+// PropsSet folder if an Environment folder has none yet).
+export async function propsDir(dir, { create = false } = {}) {
+  const env = await environment(dir);
+  return env ? sub(env, 'PropsSet', create) : dir;
+}
+
+// The EnvironmentSetup folder next to the PropsSet one, or null if the
+// picked folder can't reach it (or it isn't there and create is false).
+export async function setupDir(dir, { create = false } = {}) {
+  const env = await environment(dir);
+  return env ? sub(env, 'EnvironmentSetup', create) : null;
+}
+
 // Names of the PropsSet_*.jsfb files in a folder (the remembered one by default).
 export async function listPropSets(dir = null) {
   dir ??= await folder();
   const names = [];
-  if (!dir) return names;
-  for await (const [name, h] of dir.entries()) if (h.kind === 'file' && /^PropsSet_.*\.jsfb$/i.test(name)) names.push(name);
+  const props = dir && (await propsDir(dir));
+  if (!props) return names;
+  for await (const [name, h] of props.entries()) if (h.kind === 'file' && /^PropsSet_.*\.jsfb$/i.test(name)) names.push(name);
   return names;
 }
 
@@ -125,8 +167,10 @@ async function write(dir, name, data) {
 // Read `name` from `dir`: its bytes, or null if it isn't there (any other
 // failure throws, so a file that can't be read never passes for a missing one).
 export async function readFrom(dir, name) {
+  const props = await propsDir(dir);
+  if (!props) return null;
   try {
-    const file = await (await dir.getFileHandle(name)).getFile();
+    const file = await (await props.getFileHandle(name)).getFile();
     return new Uint8Array(await file.arrayBuffer());
   } catch (e) {
     if (e.name === 'NotFoundError') return null;
@@ -142,14 +186,9 @@ export async function readFile(name) {
   return readFrom(dir, name);
 }
 
-// Write `name` (e.g. PropsSet_HIAC.jsfb) into the folder, keeping the
-// original as name.bak the first time (unless backup is false: autosave of a
-// match, whose original was kept when the folder was connected). Returns
-// { folder, backedUp }.
-export async function saveFile(name, bytes, { backup = true } = {}) {
-  const dir = await folder();
-  if (!dir) throw new Error('no game folder picked yet');
-  if (!(await allowed(dir))) throw new DOMException('the browser was not allowed to edit the folder', 'NotAllowedError');
+// Write `name` into `dir`, keeping the original as name.bak the first time
+// (when backup). Returns { backedUp, replaced }.
+async function put(dir, name, bytes, backup) {
   const bak = `${name}.bak`;
   let backedUp = false;
   const replaced = await exists(dir, name);
@@ -159,5 +198,91 @@ export async function saveFile(name, bytes, { backup = true } = {}) {
     backedUp = true;
   }
   await write(dir, name, bytes);
-  return { folder: dir.name, backedUp, replaced };
+  return { backedUp, replaced };
+}
+
+let vanillaPositions = null;
+
+// The game's own PropsPositions.jsfb, which the site carries.
+function gamePositions() {
+  vanillaPositions ??= fetch(`data/environmentsetup/${POS.FILE}`)
+    .then((r) => {
+      if (!r.ok) throw new Error(`${POS.FILE}: HTTP ${r.status}`);
+      return r.arrayBuffer();
+    })
+    .then((b) => new Uint8Array(b))
+    .catch((e) => {
+      vanillaPositions = null;
+      throw e;
+    });
+  return vanillaPositions;
+}
+
+// Let the match whose file is `name` load: add its rows to EnvironmentSetup's
+// PropsPositions.jsfb if they're missing (the game's own file when there's
+// none yet; an original nobody added rows to kept once as .bak). Returns
+// 'added', 'ok' (nothing to add), 'unreachable' (rows needed, but the picked
+// folder is the PropsSet folder itself) or 'unreadable' (the file there can't
+// be read: left as it is).
+async function letLoad(dir, name) {
+  const file = name.replace(/\.jsfb$/i, '');
+  if (!POS.listed(file)) return 'ok';
+  if (!(await environment(dir))) return 'unreachable';
+  const setup = await setupDir(dir);
+  const there = setup && (await readIn(setup, POS.FILE));
+  let next;
+  try {
+    next = POS.withMatches(there ?? await gamePositions(), [file]);
+  } catch {
+    if (there) return 'unreadable';
+    throw new Error(`couldn’t read the game’s ${POS.FILE}`);
+  }
+  if (!next) return 'ok';
+  // keep the original once: only a file nobody has added rows to yet is one
+  await put(setup ?? await setupDir(dir, { create: true }), POS.FILE, next, !!there && POS.untouched(there));
+  return 'added';
+}
+
+async function readIn(dir, name) {
+  try {
+    return new Uint8Array(await (await (await dir.getFileHandle(name)).getFile()).arrayBuffer());
+  } catch (e) {
+    if (e.name === 'NotFoundError') return null;
+    throw e;
+  }
+}
+
+// Make sure the match whose file is `name` (already in the folder) loads:
+// letLoad without writing the file itself.
+export async function letMatchLoad(name) {
+  const dir = await folder();
+  if (!dir || !(await allowed(dir))) return 'ok';
+  return letLoad(dir, name);
+}
+
+// Does the picked folder reach EnvironmentSetup (is it an Environment folder,
+// or a BakeMe folder with one)?
+export const reachesSetup = async (dir) => !!(await environment(dir));
+
+// Can the match whose file is `name` load from the remembered folder? false
+// only when it needs PropsPositions.jsfb rows and the folder can't reach it.
+export async function canLoad(name) {
+  const dir = await folder();
+  if (!dir || !POS.listed(name.replace(/\.jsfb$/i, ''))) return true;
+  return reachesSetup(dir);
+}
+
+// Write `name` (e.g. PropsSet_HIAC.jsfb) into the folder, keeping the
+// original as name.bak the first time (unless backup is false: autosave of a
+// match, whose original was kept when the folder was connected). A PropsSet
+// file also gets its PropsPositions.jsfb rows (letLoad). Returns { folder,
+// backedUp, replaced, positions: 'added' | 'ok' | 'unreachable' | 'unreadable' }.
+export async function saveFile(name, bytes, { backup = true } = {}) {
+  const dir = await folder();
+  if (!dir) throw new Error('no game folder picked yet');
+  if (!(await allowed(dir))) throw new DOMException('the browser was not allowed to edit the folder', 'NotAllowedError');
+  const propSet = /^PropsSet_.*\.jsfb$/i.test(name);
+  const target = propSet ? await propsDir(dir, { create: true }) : dir;
+  const res = await put(target, name, bytes, backup);
+  return { folder: dir.name, ...res, positions: propSet ? await letLoad(dir, name) : 'ok' };
 }

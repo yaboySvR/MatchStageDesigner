@@ -731,9 +731,14 @@ async function pickAndReport() {
 async function saveToFolder(name, bytes) {
   try {
     if (!(await GF.folder())) await pickAndReport();
-    const { folder, backedUp, replaced } = await GF.saveFile(name, bytes);
+    const { folder, backedUp, replaced, positions } = await GF.saveFile(name, bytes);
     const what = /\.jsfb$/i.test(name) ? 'game prop set' : 'profile';
-    toast(`${replaced ? 'Overwrote' : 'Saved new'} ${what} ${name} in ${folder}${backedUp ? ` (the original is kept as ${name}.bak)` : ''}`, { ms: 5000 });
+    const loads = {
+      added: ' · added to PropsPositions.jsfb so the game loads it',
+      unreachable: '. The game won’t load it: pick the Environment folder (Change folder) so PropsPositions.jsfb can be updated',
+      unreadable: '. Couldn’t read PropsPositions.jsfb there, so it was left as it is',
+    }[positions] ?? '';
+    toast(`${replaced ? 'Overwrote' : 'Saved new'} ${what} ${name} in ${folder}${backedUp ? ` (the original is kept as ${name}.bak)` : ''}${loads}`, { ms: positions === 'ok' ? 5000 : 9000, error: positions === 'unreachable' || positions === 'unreadable' });
     return true;
   } catch (e) {
     if (e.name !== 'AbortError') toast(`Couldn’t save into the game folder: ${e.message}`, { error: true });

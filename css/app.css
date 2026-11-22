@@ -238,6 +238,7 @@ textarea.code-input { height: 76px; white-space: pre-wrap; word-break: break-all
 .text-btn { border: 0; background: none; color: var(--accent); font-weight: 600; padding: 4px 6px; border-radius: 6px; }
 .text-btn:hover { background: var(--accent-soft); }
 .text-btn.danger { color: var(--danger); }
+.warn { color: var(--danger); }
 .text-btn.danger:hover { background: rgba(255, 107, 122, .12); }
 .icon-btn {
   width: 32px; height: 32px; border-radius: 8px;

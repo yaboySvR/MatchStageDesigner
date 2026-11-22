@@ -315,7 +315,9 @@ export async function filesIn(dir) {
 // opens instead. With replace, every match is written into the folder: the
 // open one as it is now, the others as edited here or vanilla, each file
 // already there kept once as <name>.jsfb.bak.
-// Returns { read, added, backedUp, unreadable: [file names] }.
+// Matches read from the folder that differ from the vanilla file also get
+// their PropsPositions.jsfb rows (gamefolder.js), like every match written.
+// Returns { read, added, backedUp, unreadable: [file names], listed }.
 export async function connect(dir, { replace = false } = {}) {
   P.settleNow();
   clearTimeout(timer);
@@ -323,7 +325,7 @@ export async function connect(dir, { replace = false } = {}) {
   await chain;
   await GF.useFolder(dir);
   await putMeta('folder', dir);
-  const res = { read: 0, added: 0, backedUp: 0, unreadable: [] };
+  const res = { read: 0, added: 0, backedUp: 0, unreadable: [], listed: 0 };
   let reopen = null;      // the open match as the folder has it
   let openBroken = false; // the open match's file can't be read
   for (const m of MATCHES) {
@@ -343,10 +345,13 @@ export async function connect(dir, { replace = false } = {}) {
       await putCopy(m.file, { bytes: there, pending: false });
       if (open) reopen = there;
       res.read++;
+      if (!same(there, await vanilla(m.file)) && (await GF.letMatchLoad(name)) === 'added') res.listed++;
       continue;
     }
     const bytes = open ? sceneBytes() : copy?.bytes ?? await vanilla(m.file);
-    if ((await GF.saveFile(name, bytes)).backedUp) res.backedUp++;
+    const saved = await GF.saveFile(name, bytes);
+    if (saved.backedUp) res.backedUp++;
+    if (saved.positions === 'added') res.listed++;
     if (copy || open) await putCopy(m.file, { bytes, pending: false });
     if (open) last = { file: m.file, bytes, pending: false };
     res.added++;

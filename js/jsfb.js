@@ -14,6 +14,11 @@
 // Every field is optional. decode() returns only the fields a file stores (a
 // missing one means its default: 0, or an empty list), and encode() writes
 // exactly the fields it is given. Floats keep their float32 value, -0 included.
+//
+// The same codec reads EnvironmentSetup/PropsPositions.jsfb (POSITIONS, also
+// "Prop"): its `sets` list says which PropsSet file each match type loads,
+// the file named by a 64-bit hash (positions.js). The other lists' meaning
+// is unknown; they ride along unchanged.
 
 const IDENT = 'Prop';
 const VEC3 = [['x', 'f'], ['y', 'f'], ['z', 'f']];
@@ -23,9 +28,17 @@ const PROP = [
 ];
 const ROOT = [['props', { vec: PROP }], ['unk1', 'I']];
 
-// Types: 'B' u8, 'H' u16, 'I' u32, 'f' float32; an array is a table (fields
-// by id, null for ids never seen); { vec } is a vector.
-const SIZE = { B: 1, H: 2, I: 4, f: 4 };
+export const POSITIONS = [
+  ['unk0', { vec: [['unk0', 'B'], ['unk1', 'I'], ['unk2', 'Q']] }],
+  ['unk1', { vec: [['unk0', 'I'], ['unk1', 'Q'], ['unk2', 'I']] }],
+  ['sets', { vec: [['match', 'B'], ['file', 'Q']] }],
+  ['unk3', { vec: [['unk0', 'B'], ['unk1', 'Q']] }],
+  ['unk4', { vec: [['unk0', 'I'], ['unk1', 'Q']] }],
+];
+
+// Types: 'B' u8, 'H' u16, 'I' u32, 'Q' u64 (a BigInt), 'f' float32; an array
+// is a table (fields by id, null for ids never seen); { vec } is a vector.
+const SIZE = { B: 1, H: 2, I: 4, Q: 8, f: 4 };
 const MAX = { B: 0xff, H: 0xffff, I: 0xffffffff };
 const size = (t) => (typeof t === 'string' ? SIZE[t] : 4); // tables and vectors are 4-byte offsets
 
@@ -36,6 +49,7 @@ function readScalar(dv, pos, t) {
     case 'B': return dv.getUint8(pos);
     case 'H': return dv.getUint16(pos, true);
     case 'I': return dv.getUint32(pos, true);
+    case 'Q': return dv.getBigUint64(pos, true);
     default: return dv.getFloat32(pos, true);
   }
 }
@@ -61,13 +75,13 @@ function readValue(dv, pos, t) {
   return table;
 }
 
-// .jsfb bytes -> { props: [...], unk1 }
-export function decode(bytes) {
+// .jsfb bytes -> { props: [...], unk1 } (or as `schema` says)
+export function decode(bytes, schema = ROOT) {
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const ident = bytes.byteLength >= 8 ? String.fromCharCode(...bytes.subarray(4, 8)) : '';
   if (ident !== IDENT) throw new Error('not a prop set file');
   try {
-    return readValue(dv, 0, ROOT);
+    return readValue(dv, 0, schema);
   } catch (e) {
     if (e instanceof RangeError) throw new Error('the file is damaged (data runs past its end)');
     throw e;
@@ -166,6 +180,12 @@ function u32(v) {
 const sameBytes = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 
 function pack(v, t, path) {
+  if (t === 'Q') {
+    if (typeof v !== 'bigint' || v < 0n || v > 0xffffffffffffffffn) throw new Error(`${path}: expected a 64-bit value`);
+    const b = new Uint8Array(8);
+    new DataView(b.buffer).setBigUint64(0, v, true);
+    return b;
+  }
   if (typeof v !== 'number' || Number.isNaN(v)) throw new Error(`${path}: expected a number`);
   if (t !== 'f' && !(Number.isInteger(v) && v >= 0 && v <= MAX[t])) throw new Error(`${path}: ${v} is out of range`);
   const b = new Uint8Array(SIZE[t]);
@@ -204,8 +224,8 @@ function build(b, value, t, path) {
   return b.table(fields);
 }
 
-// { props: [...], unk1 } -> .jsfb bytes
-export function encode(doc) {
+// { props: [...], unk1 } (or as `schema` says) -> .jsfb bytes
+export function encode(doc, schema = ROOT) {
   const b = new Builder();
-  return b.finish(build(b, doc, ROOT, ''));
+  return b.finish(build(b, doc, schema, ''));
 }
