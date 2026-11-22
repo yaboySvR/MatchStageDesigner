@@ -721,7 +721,8 @@ async function showFolderLine() {
 }
 
 async function pickAndReport() {
-  const { name, propSets } = await GF.pickFolder();
+  const { name, env, propSets } = await GF.pickFolder();
+  if (!env) throw new Error(`${name} isn’t an Environment folder. Pick the one with EnvironmentSetup and PropsSet in it`);
   if (!propSets) toast(`No PropsSet files in ${name}. If that's the wrong folder, use Change folder.`, { ms: 6000 });
   return name;
 }
@@ -735,7 +736,7 @@ async function saveToFolder(name, bytes) {
     const what = /\.jsfb$/i.test(name) ? 'game prop set' : 'profile';
     const loads = {
       added: ' · added to PropsPositions.jsfb so the game loads it',
-      unreachable: '. The game won’t load it: pick the Environment folder (Change folder) so PropsPositions.jsfb can be updated',
+      unreachable: '. The game won’t load it: pick the Environment folder (Change folder), the one with EnvironmentSetup and PropsSet in it',
       unreadable: '. Couldn’t read PropsPositions.jsfb there, so it was left as it is',
     }[positions] ?? '';
     toast(`${replaced ? 'Overwrote' : 'Saved new'} ${what} ${name} in ${folder}${backedUp ? ` (the original is kept as ${name}.bak)` : ''}${loads}`, { ms: positions === 'ok' ? 5000 : 9000, error: positions === 'unreachable' || positions === 'unreadable' });

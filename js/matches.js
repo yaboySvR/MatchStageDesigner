@@ -135,7 +135,7 @@ async function storedBytes(file) {
   if ((await GF.access()) !== 'granted') await GF.reconnect();
   if ((await GF.access()) !== 'granted') {
     if (copy?.bytes) return { bytes: copy.bytes, pending: !!copy.pending };
-    throw new Error('the browser has to be allowed into the PropsSet folder again: use Reconnect');
+    throw new Error('the browser has to be allowed into the folder again: use Reconnect');
   }
   if (copy?.pending) return { bytes: copy.bytes, pending: true }; // newer than the folder's
   const inFolder = await GF.readFile(fileName(file));

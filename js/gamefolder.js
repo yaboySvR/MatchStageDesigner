@@ -10,12 +10,12 @@
 // are. The first save over an existing file keeps the original next to it as
 // <name>.bak, and that copy is never overwritten.
 //
-// The folder picked can be the PropsSet folder itself, or the Environment
-// folder above it, or the BakeMe folder above that. From the two last, the
-// site also reaches Environment\EnvironmentSetup, whose PropsPositions.jsfb
-// says which match types load which PropsSet file: saving a match's file
-// adds its rows there when they're missing (positions.js), as the mod tool
-// does. From the PropsSet folder itself that file can't be reached.
+// The folder picked is the Environment folder: the one with PropsSet and
+// EnvironmentSetup in it. The match files go in PropsSet; EnvironmentSetup's
+// PropsPositions.jsfb says which match types load which PropsSet file, and
+// saving a match's file adds its rows there when they're missing
+// (positions.js), as the mod tool does. (A PropsSet folder remembered from
+// before still opens and saves, but can't reach PropsPositions.jsfb.)
 
 import * as POS from './positions.js';
 
@@ -67,12 +67,11 @@ async function sub(dir, name, create = false) {
   }
 }
 
-// The Environment folder the picked folder is, or holds; null when the
-// picked folder is the PropsSet folder itself (or anything else).
+// The picked folder when it's an Environment folder (PropsSet or
+// EnvironmentSetup in it, or named Environment); null otherwise.
 async function environment(dir) {
-  if (dir.name.toLowerCase() === 'environment' || (await sub(dir, 'PropsSet'))) return dir;
-  const env = await sub(dir, 'Environment');
-  return env && (await sub(env, 'PropsSet')) ? env : null;
+  if (dir.name.toLowerCase() === 'environment') return dir;
+  return (await sub(dir, 'PropsSet')) || (await sub(dir, 'EnvironmentSetup')) ? dir : null;
 }
 
 // Where the PropsSet files are, from the picked folder (create: make the
@@ -111,12 +110,14 @@ export async function useFolder(dir) {
   } catch { /* remembered for this visit only */ }
 }
 
-// Ask which folder to use and remember it. Returns its name and how many
-// PropsSet files are in it.
+// Ask which folder to use and remember it, if it's an Environment folder.
+// Returns its name, whether it is one (env) and how many PropsSet files are
+// in it.
 export async function pickFolder() {
   const dir = await chooseFolder();
+  if (!(await environment(dir))) return { name: dir.name, env: false, propSets: 0 };
   await useFolder(dir);
-  return { name: dir.name, propSets: (await listPropSets(dir)).length };
+  return { name: dir.name, env: true, propSets: (await listPropSets(dir)).length };
 }
 
 // May the site edit the folder right now? 'granted', 'prompt' (the browser has
@@ -221,8 +222,8 @@ function gamePositions() {
 // Let the match whose file is `name` load: add its rows to EnvironmentSetup's
 // PropsPositions.jsfb if they're missing (the game's own file when there's
 // none yet; an original nobody added rows to kept once as .bak). Returns
-// 'added', 'ok' (nothing to add), 'unreachable' (rows needed, but the picked
-// folder is the PropsSet folder itself) or 'unreadable' (the file there can't
+// 'added', 'ok' (nothing to add), 'unreachable' (rows needed, but the
+// folder isn't an Environment folder) or 'unreadable' (the file there can't
 // be read: left as it is).
 async function letLoad(dir, name) {
   const file = name.replace(/\.jsfb$/i, '');
@@ -260,8 +261,7 @@ export async function letMatchLoad(name) {
   return letLoad(dir, name);
 }
 
-// Does the picked folder reach EnvironmentSetup (is it an Environment folder,
-// or a BakeMe folder with one)?
+// Is the picked folder an Environment folder (so it reaches EnvironmentSetup)?
 export const reachesSetup = async (dir) => !!(await environment(dir));
 
 // Can the match whose file is `name` load from the remembered folder? false

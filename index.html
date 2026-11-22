@@ -276,9 +276,9 @@
 
 <dialog id="dlg-connect" class="dlg">
   <form method="dialog">
-    <h3>Connect PropsSet folder</h3>
+    <h3>Connect Environment folder</h3>
     <div id="con-step1">
-      <p>Pick the <b>Environment</b> folder inside a BakeMe folder you bake (the one with <b>PropsSet</b> and <b>EnvironmentSetup</b> in it). The site opens the match prop sets already in it, as they are, and adds any of its <span class="con-count"></span> that are missing. From then on, switching matches opens that match's file in the folder, and your edits save into it by themselves. Saving a match also adds it to <b>EnvironmentSetup\PropsPositions.jsfb</b> when it's missing there, as the mod tool does: without that, the game never loads most matches' prop sets.</p>
+      <p>Pick the <b>Environment</b> folder: the one with <b>EnvironmentSetup</b> and <b>PropsSet</b> in it. No other folder is accepted. The site opens the match prop sets already in it, as they are, and adds any of its <span class="con-count"></span> that are missing. From then on, switching matches opens that match's file in the folder, and your edits save into it by themselves. Saving a match also adds it to <b>EnvironmentSetup\PropsPositions.jsfb</b> when it's missing there, as the mod tool does: without that, the game never loads most matches' prop sets.</p>
       <div class="bake-path">
         <div class="bake-head"><b>Where the folder can be</b></div>
         <p>Chrome and Edge won't open anything inside system folders such as Program Files, Windows or AppData, which is where Steam puts the game and often the mod tools. They say the folder "contains system files", whatever it holds.</p>
@@ -387,7 +387,7 @@
         <dl>
           <dt>Match · ◀ ▶</dt><dd>Each match remembers its own layout, starting from the game's defaults</dd>
           <dt>Prop Profiles tab</dt><dd>Upload a folder of .propsprofile files into the site and step through them; Save or Ctrl+S keeps changes, Download gets the file back</dd>
-          <dt data-feature="matches" hidden>Connect PropsSet folder</dt><dd data-feature="matches" hidden>Pick the BakeMe <b>Environment</b> folder: opens and saves the match files in its PropsSet folder, and adds each saved match to EnvironmentSetup\PropsPositions.jsfb so the game loads it (https only, not inside Program Files)</dd>
+          <dt data-feature="matches" hidden>Connect Environment folder</dt><dd data-feature="matches" hidden>Pick the <b>Environment</b> folder (the one with EnvironmentSetup and PropsSet in it): opens and saves the match files in its PropsSet folder, and adds each saved match to EnvironmentSetup\PropsPositions.jsfb so the game loads it (https only, not inside Program Files)</dd>
         </dl>
       </div>
       <div>

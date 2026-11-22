@@ -1,5 +1,5 @@
 // The Match panel: pick a match (or free design), step through them with the
-// arrows, see where edits are saved, and connect the PropsSet folder
+// arrows, see where edits are saved, and connect the Environment folder
 // (matches.js does the work). Connecting is two steps: the dialog first says
 // which folder to pick, then which match files are there (they get opened
 // from it, or replaced if the user picks that), and nothing is written until
@@ -114,17 +114,17 @@ async function renderStatus() {
   } else if (browser) {
     line = S.match ? (saved === 'Saved' ? 'Saved in this browser' : saved) : 'Pick a match to design its props';
   } else if (dir && allowed) {
-    line = `${(await GF.reachesSetup(dir)) ? 'Folder' : 'PropsSet folder'} <b>${esc(dir.name)}</b>${S.match ? ` · ${saved}` : ''}`;
+    line = `Folder <b>${esc(dir.name)}</b>${S.match ? ` · ${saved}` : ''}`;
     if (S.match && !(await GF.canLoad(M.fileName(S.match)))) {
-      line += ' · <span class="warn" title="This folder is the PropsSet folder itself, so the site can’t reach EnvironmentSetup next to it. Connect the Environment folder above it instead.">The game won’t load this match: PropsPositions.jsfb is out of reach</span>';
+      line += ' · <span class="warn" title="This folder isn’t an Environment folder, so the site can’t reach EnvironmentSetup. Connect the Environment folder (the one with EnvironmentSetup and PropsSet in it) instead.">The game won’t load this match: PropsPositions.jsfb is out of reach</span>';
     }
   } else if (dir) {
-    line = '<button type="button" class="text-btn" data-act="reconnect">Reconnect PropsSet folder</button>'
+    line = '<button type="button" class="text-btn" data-act="reconnect">Reconnect Environment folder</button>'
       + (state === 'pending' ? ' · changes wait in this browser' : '');
   } else {
     line = S.match ? `${saved === 'Saved' ? 'Saved in this browser' : saved}` : 'Pick a match to edit its prop set';
-    if (GF.supported()) line += ' · <button type="button" class="text-btn" data-act="connect">Connect PropsSet folder…</button>';
-    else if (!window.isSecureContext) line += ' · <span class="muted" title="Browsers only let https:// pages use a folder on your computer">Connecting a PropsSet folder needs the site’s https:// address</span>';
+    if (GF.supported()) line += ' · <button type="button" class="text-btn" data-act="connect">Connect Environment folder…</button>';
+    else if (!window.isSecureContext) line += ' · <span class="muted" title="Browsers only let https:// pages use a folder on your computer">Connecting a folder needs the site’s https:// address</span>';
   }
   $('match-status').innerHTML = line;
 }
@@ -162,20 +162,29 @@ function bindConnectDialog() {
       if (e.name !== 'AbortError') toast(`Couldn’t use that folder: ${e.message}`, { error: true });
       return;
     }
+    $('con-folder').textContent = chosen.name;
+    if (!(await GF.reachesSetup(chosen))) {
+      // only the Environment folder: pick again
+      $('con-replace').textContent = '';
+      $('con-note').textContent = '';
+      $('con-setup').textContent = 'This isn’t an Environment folder: it has no PropsSet or EnvironmentSetup folder in it. Choose the Environment folder, the one with EnvironmentSetup and PropsSet in it.';
+      $('con-setup').className = 'small warn';
+      showStep(2);
+      $('con-ok').hidden = true;
+      $('con-choose').hidden = false;
+      chosen = null;
+      return;
+    }
     const there = await M.filesIn(chosen);
     const lower = new Set(there.map((f) => f.toLowerCase()));
     const editedHere = [...(await M.editedMatches())].filter((f) => lower.has(M.fileName(f).toLowerCase()));
     const n = M.MATCHES.length;
     const missing = n - there.length;
-    $('con-folder').textContent = chosen.name;
     $('con-replace').textContent = there.length
       ? `${there.length} of the ${n} match files are already here: the site opens them from this folder as they are${missing ? `, and adds the ${missing} missing one${missing === 1 ? '' : 's'}` : ''}.`
       : `None of the ${n} match files are here yet; they get added.`;
-    const env = await GF.reachesSetup(chosen);
-    $('con-setup').textContent = env
-      ? 'Saving a match also adds it to EnvironmentSetup\\PropsPositions.jsfb here when it’s missing (the original kept once as .bak), so the game loads it.'
-      : 'This looks like the PropsSet folder itself: the site can’t reach EnvironmentSetup\\PropsPositions.jsfb from here, and without it the game doesn’t load most matches’ prop sets (Hell in a Cell, Steel Cage, Extreme Rules…). Choose the Environment folder above it instead.';
-    $('con-setup').className = env ? 'small' : 'small warn';
+    $('con-setup').textContent = 'Saving a match also adds it to EnvironmentSetup\\PropsPositions.jsfb here when it’s missing (the original kept once as .bak), so the game loads it.';
+    $('con-setup').className = 'small';
     $('con-note').textContent = editedHere.length
       ? `${editedHere.length} match${editedHere.length === 1 ? '' : 'es'} you edited in this browser will show this folder’s file instead. To put your browser’s versions here, use Replace them instead (each file here is kept once as <name>.jsfb.bak).`
       : '';
